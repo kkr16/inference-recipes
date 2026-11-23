@@ -2,6 +2,8 @@
 
 Reproducible, tuned LLM serving recipes, controlled ablations, and multi-GPU scaling benchmarks across accelerators and serving engines.
 
+📖 **[Live Documentation & Pareto Explorer → kkr16.github.io/inference-recipes](https://kkr16.github.io/inference-recipes/)**
+
 ## Recipe Catalog
 
 <!-- CATALOG:START -->

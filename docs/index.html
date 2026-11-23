@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Inference Recipes — Tuned LLM Serving Benchmarks &amp; Pareto Frontiers</title>
+<meta name="description" content="Reproducible LLM serving recipes, controlled ablations, and SemiAnalysis-style Pareto benchmarks across GPUs and serving engines."/>
+<link rel="canonical" href="https://kkr16.github.io/inference-recipes/"/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="Inference Recipes — Tuned LLM Serving Benchmarks"/>
+<meta property="og:description" content="Reproducible LLM serving recipes, SemiAnalysis-style Pareto charts, and runnable vLLM/SGLang configs."/>
+<meta property="og:url" content="https://kkr16.github.io/inference-recipes/"/>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="%230D9488"/><path d="M8 22 L13 15 L18 18 L24 10" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'/>
+<style>
+:root {
+  --bg: #ffffff;
+  --bg-subtle: #f8fafc;
+  --bg-sidebar: #f1f5f9;
+  --text: #0f172a;
+  --text-muted: #475569;
+  --border: #e2e8f0;
+  --accent: #0d9488;
+  --accent-2: #2563eb;
+  --accent-soft: #ecfdf5;
+  --code-bg: #0f172a;
+  --code-text: #e2e8f0;
+  --shadow: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+}
+[data-theme="dark"] {
+  --bg: #0b1120;
+  --bg-subtle: #111827;
+  --bg-sidebar: #0f172a;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border: #1e293b;
+  --accent: #2dd4bf;
+  --accent-2: #60a5fa;
+  --accent-soft: rgba(45,212,191,0.12);
+  --code-bg: #020617;
+  --code-text: #e2e8f0;
+  --shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  display: flex;
+  min-height: 100vh;
+}
+a { color: var(--accent-2); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Sidebar */
+.sidebar {
+  width: 272px;
+  flex-shrink: 0;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  padding: 20px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.brand-badge {
+  width: 28px; height: 28px; border-radius: 7px;
+  background: linear-gradient(135deg, #0d9488, #2563eb);
+  display: grid; place-items: center; color: #fff; font-size: 14px; font-weight: 800;
+}
+.nav-group-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin: 4px 8px 6px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: background 0.12s;
+}
+.nav-item:hover { background: var(--border); text-decoration: none; }
+.nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.nav-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+.hw-dot { background: var(--accent-2); }
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+}
+.theme-btn {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Main content */
+.main {
+  flex: 1;
+  min-width: 0;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 32px 40px 80px;
+}
+.page { display: none; }
+.page.active { display: block; }
+
+/* Hero */
+.hero {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 24px;
+  margin-bottom: 28px;
+}
+.hero h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+.hero p { margin: 0; color: var(--text-muted); font-size: 15.5px; max-width: 780px; }
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin: 22px 0 6px;
+}
+.kpi {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+}
+.kpi-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.kpi-val { font-size: 24px; font-weight: 800; color: var(--text); margin-top: 4px; letter-spacing: -0.02em; }
+.kpi-sub { font-size: 12px; color: var(--accent); font-weight: 600; margin-top: 2px; }
+
+/* Filter bar & tables */
+.filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 12px;
+  flex-wrap: wrap;
+}
+.filter-bar input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13.5px;
+  width: 300px;
+  max-width: 100%;
+}
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 14px 0 24px;
+  background: var(--bg);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+th, td {
+  padding: 10px 13px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+th {
+  background: var(--bg-subtle);
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--bg-subtle); }
+td.num { text-align: right; white-space: nowrap; }
+td.actions { white-space: nowrap; font-weight: 600; }
+.sub-cell { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+.pill-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.pill {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.quant-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 5px;
+  margin-right: 4px;
+}
+.quant-nvfp4 { background: #ccfbf1; color: #0f766e; }
+.quant-fp8 { background: #fef3c7; color: #b45309; }
+.quant-bf16 { background: #e2e8f0; color: #334155; }
+
+/* Charts */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin: 20px 0 28px;
+}
+.chart-card, .chart-fig {
+  margin: 18px 0;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: var(--shadow);
+}
+.chart-card img, .chart-fig img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 6px;
+  cursor: zoom-in;
+}
+.chart-fig figcaption {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* Prose & Callouts */
+.page-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+.page-header h1 { margin: 4px 0 8px; font-size: 28px; letter-spacing: -0.02em; }
+.breadcrumb { font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
+.gh-link { font-size: 13px; font-weight: 600; }
+.prose h2 { margin: 30px 0 12px; font-size: 21px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.prose h3 { margin: 22px 0 10px; font-size: 17px; }
+.prose h4 { margin: 16px 0 8px; font-size: 15px; }
+.prose code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.88em;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.callout {
+  border-left: 4px solid var(--accent);
+  background: var(--bg-subtle);
+  border-radius: 0 8px 8px 0;
+  padding: 12px 16px;
+  margin: 16px 0;
+}
+.callout-warning { border-left-color: #d97706; }
+.callout-tip { border-left-color: #0d9488; }
+.callout-important { border-left-color: #2563eb; }
+.callout-title { font-size: 11.5px; font-weight: 800; letter-spacing: 0.06em; margin-bottom: 4px; color: var(--accent); }
+.callout-warning .callout-title { color: #d97706; }
+.callout-important .callout-title { color: #2563eb; }
+
+/* Code blocks & Tabs */
+.code-wrap {
+  border-radius: 9px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin: 12px 0 18px;
+  background: var(--code-bg);
+}
+.code-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.06);
+  color: #94a3b8;
+  font-size: 12px;
+  font-family: monospace;
+}
+.copy-btn {
+  background: rgba(255,255,255,0.12);
+  color: #f8fafc;
+  border: none;
+  border-radius: 5px;
+  padding: 3px 9px;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.copy-btn:hover { background: rgba(255,255,255,0.22); }
+pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  color: var(--code-text);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+pre code { background: none !important; border: none !important; padding: 0 !important; color: inherit; }
+
+.recipe-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 22px;
+  background: var(--bg-subtle);
+}
+.recipe-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.recipe-head h3 { margin: 0 0 4px; font-size: 17px; }
+.recipe-meta { margin: 0 0 12px; font-size: 13px; color: var(--text-muted); }
+.tabs { display: flex; gap: 6px; margin-bottom: 4px; }
+.tab-btn {
+  background: var(--bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* Lightbox */
+.lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.88);
+  z-index: 999;
+  place-items: center;
+  padding: 24px;
+  cursor: zoom-out;
+}
+.lightbox.open { display: grid; }
+.lightbox img { max-width: 96vw; max-height: 92vh; border-radius: 8px; background: #fff; }
+
+@media (max-width: 900px) {
+  body { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }
+  .main { padding: 20px 16px 60px; }
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-badge">IR</div>
+    <div>inference-recipes</div>
+  </div>
+
+  <div>
+    <div class="nav-group-title">Overview</div>
+    <a class="nav-item active" data-page="overview" href="#overview" onclick="navTo('overview');return false;">Leaderboard &amp; Pareto</a>
+    <a class="nav-item" data-page="recipes" href="#recipes" onclick="navTo('recipes');return false;">Runnable Recipes (7)</a>
+    <a class="nav-item" data-page="methodology" href="#methodology" onclick="navTo('methodology');return false;">Benchmark Harness</a>
+  </div>
+
+  <div>
+    <div class="nav-group-title">Model Guides</div>
+    <a class="nav-item" data-page="guide-qwen3-8-27b-rtx-pro-6000" href="#guide-qwen3-8-27b-rtx-pro-6000" onclick="navTo('guide-qwen3-8-27b-rtx-pro-6000');return false;"><span class="nav-dot"></span>qwen3.8-27b · rtx-pro-6000</a>
+  </div>
+
+  <div>
+    <div class="nav-group-title">Hardware Reference</div>
+    <a class="nav-item" data-page="hw-rtx-pro-6000" href="#hw-rtx-pro-6000" onclick="navTo('hw-rtx-pro-6000');return false;"><span class="nav-dot hw-dot"></span>rtx-pro-6000</a>
+  </div>
+
+  <div class="sidebar-footer">
+    <a href="https://github.com/kkr16/inference-recipes" target="_blank" rel="noopener">GitHub Repo ↗</a>
+    <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">Dark</button>
+  </div>
+</aside>
+
+<main class="main">
+  <!-- OVERVIEW -->
+  <section class="page active" id="page-overview">
+    <div class="hero">
+      <h1>Inference Recipes</h1>
+      <p>Reproducible, tuned LLM serving recipes, controlled single-variable ablations, and SemiAnalysis-style Pareto frontiers across accelerators and serving engines.</p>
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="kpi-label">Fastest Single-Stream</div>
+          <div class="kpi-val">1.65 s p90</div>
+          <div class="kpi-sub">Qwen3.8-27B · TP=8 NVFP4 MTP-5 (10k/500)</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Peak 8-GPU Node</div>
+          <div class="kpi-val">4,172 tok/s</div>
+          <div class="kpi-sub">DP=8 × TP=1 NVFP4 MTP-4 (3.6×–7.1× vs TP)</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Published Recipes</div>
+          <div class="kpi-val">7</div>
+          <div class="kpi-sub">1 model(s) · 1 accelerator(s)</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Last Updated</div>
+          <div class="kpi-val">2026-11-23</div>
+          <div class="kpi-sub">Apache 2.0 · Zero-error verified</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <h2 style="margin:0;">Recipe Leaderboard</h2>
+      <input type="search" id="lbSearch" placeholder="Filter by model, hardware, quant, TP..." oninput="filterTable(this.value)"/>
+    </div>
+    <div class="table-wrap">
+      <table id="lbTable">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Hardware</th>
+            <th>Topology</th>
+            <th>Engine &amp; Stack</th>
+            <th style="text-align:right">c=1 E2E p90</th>
+            <th style="text-align:right">Peak Throughput</th>
+            <th>Links</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-search="qwen3.8-27b rtx-pro-6000 dp=8 x tp=1 fp8 mtp-4 fp8-draft-head qwen_g4_kernels extensible-kv"><td><strong>Qwen3.8-27B</strong><div class="sub-cell">Qwen/Qwen3.8-27B-FP8</div></td><td><code>rtx-pro-6000</code><div class="sub-cell">gcp-g4-standard-384</div></td><td><code>DP=8 x TP=1</code></td><td><span class="quant-badge quant-fp8">FP8</span> vLLM 0.34.0<div class="pill-row"><span class="pill">MTP-4</span><span class="pill">fp8-draft-head</span><span class="pill">qwen_g4_kernels</span><span class="pill">extensible-kv</span></div></td><td class="num"><strong>4.91 s</strong></td><td class="num"><strong>2,550.3 tok/s</strong><div class="sub-cell">DP=8 @ c=8/GPU</div></td><td class="actions"><a href="#guide-qwen3-8-27b-rtx-pro-6000" onclick="navTo('guide-qwen3-8-27b-rtx-pro-6000');return false;">Guide</a> · <a href="#recipe-tp1-vllm-fp8-mtp4" onclick="navTo('recipes', 'recipe-tp1-vllm-fp8-mtp4');return false;">Launch</a></td></tr><tr data-search="qwen3.8-27b rtx-pro-6000 dp=8 x tp=1 nvfp4 mtp-4 mode=3 extensible-kv"><td><strong>Qwen3.8-27B</strong><div class="sub-cell">nvidia/Qwen3.8-27B-NVFP4</div></td><td><code>rtx-pro-6000</code><div class="sub-cell">gcp-g4-standard-384</div></td><td><code>DP=8 x TP=1</code></td><td><span class="quant-badge quant-nvfp4">NVFP4</span> vLLM 0.34.0<div class="pill-row"><span class="pill">MTP-4</span><span class="pill">mode=3</span><span class="pill">extensible-kv</span></div></td><td class="num"><strong>3.75 s</strong></td><td class="num"><strong>4,106.9 tok/s</strong><div class="sub-cell">DP=8 @ c=16/GPU</div></td><td class="actions"><a href="#guide-qwen3-8-27b-rtx-pro-6000" onclick="navTo('guide-qwen3-8-27b-rtx-pro-6000');return false;">Guide</a> · <a href="#recipe-tp1-vllm-nvfp4-mtp4-mode3" onclick="navTo('recipes', 'recipe-tp1-vllm-nvfp4-mtp4-mode3');return false;">Launch</a></td></tr><tr data-search="qwen3.8-27b rtx-pro-6000 dp=8 x tp=1 nvfp4 mtp-4 bf16-ssm fp8-kv"><td><strong>Qwen3.8-27B</strong><div class="sub-cell">nvidia/Qwen3.8-27B-NVFP4</div></td><td><code>rtx-pro-6000</code><div class="sub-cell">gcp-g4-standard-384</div></td><td><code>DP=8 x TP=1</code></td><td><span class="quant-badge quant-nvfp4">NVFP4</span> vLLM 0.34.0<div class="pill-row"><span class="pill">MTP-4</span><span class="pill">bf16-ssm</span><span class="pill">fp8-kv</span></div></td><td class="num"><strong>3.86 s</strong></td><td class="num"><strong>4,172.4 tok/s</strong><div class="sub-cell">DP=8 @ c=24/GPU</div></td><td class="actions"><a href="#guide-qwen3-8-27b-rtx-pro-6000" onclick="navTo('guide-qwen3-8-27b-rtx-pro-6000');return false;">Guide</a> · <a href="#recipe-tp1-vllm-nvfp4-mtp4" onclick="navTo('recipes', 'recipe-tp1-vllm-nvfp4-mtp4');return false;">Launch</a></td></tr><tr data-search="qwen3.8-27b rtx-pro-6000 dp=4 x tp=2 nvfp4 mtp-4 pcie_ipc p2p=sys"><td><strong>Qwen3.8-27B</strong><div class="sub-cell">nvidia/Qwen3.8-27B-NVFP4</div></td><td><code>rtx-pro-6000</code><div class="sub-cell">gcp-g4-standard-384</div></td><td><code>DP=4 x TP=2</code></td><td><span class="quant-badge quant-nvfp4">NVFP4</span> vLLM 0.34.0<div class="pill-row"><span class="pill">MTP-4</span><span class="pill">PCIE_IPC</span><span class="pill">P2P=SYS</span></div></td><td class="num"><strong>2.62 s</strong></td><td class="num"><strong>2,090.9 tok/s</strong><div class="sub-cell">DP=4 @ c=16/rep</div></td><td class="actions"><a href="#guide-qwen3-8-27b-rtx-pro-6000" onclick="navTo('guide-qwen3-8-27b-rtx-pro-6000');return false;">Guide</a> · <a href="#recipe-tp2-vllm-nvfp4-mtp4" onclick="navTo('recipes', 'recipe-tp2-vllm-nvfp4-mtp4');return false;">Launch</a></td></tr><tr data-search="qwen3.8-27b rtx-pro-6000 dp=2 x tp=4 nvfp4 mtp-4 pcie_ipc p2p=sys"><td><strong>Qwen3.8-27B</strong><div class="sub-cell">nvidia/Qwen3.8-27B-NVFP4</div></td><td><code>rtx-pro-6000</code><div class="sub-cell">gcp-g4-standard-384</div></td><td><code>DP=2 x TP=4</code></td><td><span class="quant-badge quant-nvfp4">NVFP4</span> vLLM 0.34.0<div class="pill-row"><span class="pill">MTP-4</span><span class="pill">PCIE_IPC</span><span class="pill">P2P=SYS</span></div></td><td class="num"><strong>2.13 s</strong></td><td class="num"><strong>1,137.2 tok/s</strong><div class="sub-cell">DP=2 @ c=16/rep</div></td><td class="actions"><a href="#guide-qwen3-8-27b-rtx-pro-6000" onclick="navTo('guide-qwen3-8-27b-rtx-pro-6000');return false;">Guide</a> · <a href="#recipe-tp4-vllm-nvfp4-mtp4" onclick="navTo('recipes', 'recipe-tp4-vllm-nvfp4-mtp4');return false;">Launch</a></td></tr><tr data-search="qwen3.8-27b rtx-pro-6000 1 x tp=8 nvfp4 mtp-4 pcie_ipc p2p=sys qwen_g4_kernels"><td><strong>Qwen3.8-27B</strong><div class="sub-cell">nvidia/Qwen3.8-27B-NVFP4</div></td><td><code>rtx-pro-6000</code><div class="sub-cell">gcp-g4-standard-384</div></td><td><code>1 x TP=8</code></td><td><span class="quant-badge quant-nvfp4">NVFP4</span> vLLM 0.34.0<div class="pill-row"><span class="pill">MTP-4</span><span class="pill">PCIE_IPC</span><span class="pill">P2P=SYS</span><span class="pill">qwen_g4_kernels</span></div></td><td class="num"><strong>1.76 s</strong></td><td class="num"><strong>578.9 tok/s</strong><div class="sub-cell">TP=8 @ c=16</div></td><td class="actions"><a href="#guide-qwen3-8-27b-rtx-pro-6000" onclick="navTo('guide-qwen3-8-27b-rtx-pro-6000');return false;">Guide</a> · <a href="#recipe-tp8-vllm-nvfp4-mtp4" onclick="navTo('recipes', 'recipe-tp8-vllm-nvfp4-mtp4');return false;">Launch</a></td></tr><tr data-search="qwen3.8-27b rtx-pro-6000 1 x tp=8 nvfp4 mtp-5 pcie_ipc p2p=sys qwen_g4_kernels"><td><strong>Qwen3.8-27B</strong><div class="sub-cell">nvidia/Qwen3.8-27B-NVFP4</div></td><td><code>rtx-pro-6000</code><div class="sub-cell">gcp-g4-standard-384</div></td><td><code>1 x TP=8</code></td><td><span class="quant-badge quant-nvfp4">NVFP4</span> vLLM 0.34.0<div class="pill-row"><span class="pill">MTP-5</span><span class="pill">PCIE_IPC</span><span class="pill">P2P=SYS</span><span class="pill">qwen_g4_kernels</span></div></td><td class="num"><strong>1.65 s</strong></td><td class="num"><strong>400.5 tok/s</strong><div class="sub-cell">TP=8 @ c=2</div></td><td class="actions"><a href="#guide-qwen3-8-27b-rtx-pro-6000" onclick="navTo('guide-qwen3-8-27b-rtx-pro-6000');return false;">Guide</a> · <a href="#recipe-tp8-vllm-nvfp4-mtp5" onclick="navTo('recipes', 'recipe-tp8-vllm-nvfp4-mtp5');return false;">Launch</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Pareto Frontiers</h2>
+    <p style="color:var(--text-muted);margin-top:-6px;">Click any chart to zoom. Generated directly from verified <code>results/metrics.json</code> runs.</p>
+    <div class="charts-grid">
+      <div class="chart-card"><img src="assets/qwen3.8-27b-rtx-pro-6000/pareto_interactivity_vs_throughput.png" alt="Pareto Interactivity Vs Throughput" loading="lazy" onclick="openLightbox(this.src, this.alt)"/></div><div class="chart-card"><img src="assets/qwen3.8-27b-rtx-pro-6000/pareto_node_throughput_vs_e2e_p90.png" alt="Pareto Node Throughput Vs E2E P90" loading="lazy" onclick="openLightbox(this.src, this.alt)"/></div>
+    </div>
+  </section>
+
+  <!-- RUNNABLE RECIPES -->
+  <section class="page" id="page-recipes">
+    <div class="page-header">
+      <div class="breadcrumb">Copy &amp; Deploy</div>
+      <h1>Runnable Serving Recipes</h1>
+      <p style="color:var(--text-muted);margin:0;">Exact <code>serve.sh</code> launch commands and Kubernetes / GKE manifests for every published operating tier.</p>
+    </div>
+    
+        <article class="recipe-card" id="recipe-tp1-vllm-fp8-mtp4">
+          <div class="recipe-head">
+            <div>
+              <h3>Qwen3.8-27B — <code>tp1-vllm-fp8-mtp4</code></h3>
+              <p class="recipe-meta">
+                <code>rtx-pro-6000</code> · <code>DP=8 x TP=1</code> ·
+                vLLM 0.34.0 · FP8 ·
+                c=1 E2E p90: <strong>4.91 s</strong> ·
+                Peak: <strong>2,550.3 tok/s</strong> (DP=8 @ c=8/GPU)
+              </p>
+            </div>
+            <a class="gh-link" href="https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp1-vllm-fp8-mtp4" target="_blank" rel="noopener">View on GitHub ↗</a>
+          </div>
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(this, 'recipe-tp1-vllm-fp8-mtp4-serve')">serve.sh</button>
+            <button class="tab-btn" onclick="switchTab(this, 'recipe-tp1-vllm-fp8-mtp4-gke')">deploy-gke.yaml</button>
+          </div>
+          <div class="tab-pane active" id="recipe-tp1-vllm-fp8-mtp4-serve"><div class="code-wrap"><div class="code-bar"><span>serve.sh</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>#!/usr/bin/env bash
+set -euo pipefail
+
+# Recipe: tp1-vllm-fp8-mtp4 (DP=8 x TP=1)
+# Container: vllm/vllm-openai:v0.34.0
+# Prerequisite: install the skinny Triton in_proj_ba plugin (qwen_g4_kernels) in the vLLM environment:
+#   pip install git+https://github.com/jawadaminGOOG/g4-recipes.git#subdirectory=plugins/qwen_g4_kernels
+
+export HF_XET_HIGH_PERFORMANCE=1
+
+# NOTE: Prefix caching is ENABLED by default for production.
+# Pass --no-enable-prefix-caching only to reproduce uncached stress benchmarks.
+exec vllm serve Qwen/Qwen3.8-27B-FP8 \
+  --host=0.0.0.0 \
+  --port=8000 \
+  --trust-remote-code \
+  --language-model-only \
+  --max-model-len=16384 \
+  --kv-cache-dtype=fp8 \
+  --mamba-ssm-cache-dtype=bfloat16 \
+  --max-num-batched-tokens=4096 \
+  --max-num-seqs=256 \
+  &#x27;--speculative-config={&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:4,&quot;draft_lm_head_quantization&quot;:&quot;fp8&quot;}&#x27; \
+  &quot;$@&quot;
+</code></pre></div></div>
+          <div class="tab-pane" id="recipe-tp1-vllm-fp8-mtp4-gke"><div class="code-wrap"><div class="code-bar"><span>deploy-gke.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwen38-27b-fp8-dp8
+  namespace: default
+  labels:
+    app: qwen38-27b-fp8-dp8
+spec:
+  replicas: 8
+  selector:
+    matchLabels:
+      app: qwen38-27b-fp8-dp8
+  template:
+    metadata:
+      labels:
+        app: qwen38-27b-fp8-dp8
+    spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Equal
+          value: present
+          effect: NoSchedule
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-rtx-pro-6000
+      containers:
+        - name: vllm
+          # NOTE: Build/use an image with qwen_g4_kernels pre-installed, or install via initContainer/command.
+          image: vllm/vllm-openai:v0.34.0
+          args:
+            - Qwen/Qwen3.8-27B-FP8
+            - --host=0.0.0.0
+            - --port=8000
+            - --trust-remote-code
+            - --language-model-only
+            - --max-model-len=16384
+            - --kv-cache-dtype=fp8
+            - --mamba-ssm-cache-dtype=bfloat16
+            - --max-num-batched-tokens=4096
+            - --max-num-seqs=256
+            - &#x27;--speculative-config={&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:4,&quot;draft_lm_head_quantization&quot;:&quot;fp8&quot;}&#x27;
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: HF_HOME
+              value: &quot;/hf-cache&quot;
+            - name: HF_XET_HIGH_PERFORMANCE
+              value: &quot;1&quot;
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token
+                  key: token
+          resources:
+            requests:
+              cpu: &quot;16&quot;
+              memory: &quot;80Gi&quot;
+              nvidia.com/gpu: &quot;1&quot;
+            limits:
+              cpu: &quot;32&quot;
+              memory: &quot;128Gi&quot;
+              nvidia.com/gpu: &quot;1&quot;
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 45
+            periodSeconds: 10
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: hf-cache
+              mountPath: /hf-cache
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Gi
+        - name: hf-cache
+          hostPath:
+            path: /mnt/stateful_partition/kube-ephemeral-ssd/hf-cache
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen38-27b-fp8-dp8-svc
+  namespace: default
+spec:
+  selector:
+    app: qwen38-27b-fp8-dp8
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+</code></pre></div></div>
+        </article>
+        
+        <article class="recipe-card" id="recipe-tp1-vllm-nvfp4-mtp4-mode3">
+          <div class="recipe-head">
+            <div>
+              <h3>Qwen3.8-27B — <code>tp1-vllm-nvfp4-mtp4-mode3</code></h3>
+              <p class="recipe-meta">
+                <code>rtx-pro-6000</code> · <code>DP=8 x TP=1</code> ·
+                vLLM 0.34.0 · NVFP4 ·
+                c=1 E2E p90: <strong>3.75 s</strong> ·
+                Peak: <strong>4,106.9 tok/s</strong> (DP=8 @ c=16/GPU)
+              </p>
+            </div>
+            <a class="gh-link" href="https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp1-vllm-nvfp4-mtp4-mode3" target="_blank" rel="noopener">View on GitHub ↗</a>
+          </div>
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(this, 'recipe-tp1-vllm-nvfp4-mtp4-mode3-serve')">serve.sh</button>
+            <button class="tab-btn" onclick="switchTab(this, 'recipe-tp1-vllm-nvfp4-mtp4-mode3-gke')">deploy-gke.yaml</button>
+          </div>
+          <div class="tab-pane active" id="recipe-tp1-vllm-nvfp4-mtp4-mode3-serve"><div class="code-wrap"><div class="code-bar"><span>serve.sh</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>#!/usr/bin/env bash
+set -euo pipefail
+
+# Recipe: tp1-vllm-nvfp4-mtp4-mode3 (DP=8 x TP=1)
+# Container: vllm/vllm-openai:v0.34.0
+export HF_XET_HIGH_PERFORMANCE=1
+export VLLM_USE_BREAKABLE_CUDAGRAPH=&quot;0&quot;
+
+# NOTE: Prefix caching is ENABLED by default for production.
+# Pass --no-enable-prefix-caching only to reproduce uncached stress benchmarks.
+exec vllm serve nvidia/Qwen3.8-27B-NVFP4 \
+  --host=0.0.0.0 \
+  --port=8000 \
+  --trust-remote-code \
+  --language-model-only \
+  --max-model-len=16384 \
+  --kv-cache-dtype=fp8 \
+  --mamba-ssm-cache-dtype=bfloat16 \
+  --max-num-batched-tokens=4096 \
+  --max-num-seqs=256 \
+  &#x27;--speculative-config={&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:4}&#x27; \
+  &#x27;--compilation-config={&quot;mode&quot;:3,&quot;pass_config&quot;:{&quot;fuse_qk_norm_rope_kvcache&quot;:true}}&#x27; \
+  &quot;$@&quot;
+</code></pre></div></div>
+          <div class="tab-pane" id="recipe-tp1-vllm-nvfp4-mtp4-mode3-gke"><div class="code-wrap"><div class="code-bar"><span>deploy-gke.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwen38-27b-nvfp4-dp8-mode3
+  namespace: default
+  labels:
+    app: qwen38-27b-nvfp4-dp8-mode3
+spec:
+  replicas: 8
+  selector:
+    matchLabels:
+      app: qwen38-27b-nvfp4-dp8-mode3
+  template:
+    metadata:
+      labels:
+        app: qwen38-27b-nvfp4-dp8-mode3
+    spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Equal
+          value: present
+          effect: NoSchedule
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-rtx-pro-6000
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:v0.34.0
+          args:
+            - nvidia/Qwen3.8-27B-NVFP4
+            - --host=0.0.0.0
+            - --port=8000
+            - --trust-remote-code
+            - --language-model-only
+            - --max-model-len=16384
+            - --kv-cache-dtype=fp8
+            - --mamba-ssm-cache-dtype=bfloat16
+            - --max-num-batched-tokens=4096
+            - --max-num-seqs=256
+            - &#x27;--speculative-config={&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:4}&#x27;
+            - &#x27;--compilation-config={&quot;mode&quot;:3,&quot;pass_config&quot;:{&quot;fuse_qk_norm_rope_kvcache&quot;:true}}&#x27;
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: HF_HOME
+              value: &quot;/hf-cache&quot;
+            - name: HF_XET_HIGH_PERFORMANCE
+              value: &quot;1&quot;
+            - name: VLLM_USE_BREAKABLE_CUDAGRAPH
+              value: &quot;0&quot;
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token
+                  key: token
+          resources:
+            requests:
+              cpu: &quot;16&quot;
+              memory: &quot;80Gi&quot;
+              nvidia.com/gpu: &quot;1&quot;
+            limits:
+              cpu: &quot;32&quot;
+              memory: &quot;128Gi&quot;
+              nvidia.com/gpu: &quot;1&quot;
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 45
+            periodSeconds: 10
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: hf-cache
+              mountPath: /hf-cache
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Gi
+        - name: hf-cache
+          hostPath:
+            path: /mnt/stateful_partition/kube-ephemeral-ssd/hf-cache
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen38-27b-nvfp4-dp8-mode3-svc
+  namespace: default
+spec:
+  selector:
+    app: qwen38-27b-nvfp4-dp8-mode3
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+</code></pre></div></div>
+        </article>
+        
+        <article class="recipe-card" id="recipe-tp1-vllm-nvfp4-mtp4">
+          <div class="recipe-head">
+            <div>
+              <h3>Qwen3.8-27B — <code>tp1-vllm-nvfp4-mtp4</code></h3>
+              <p class="recipe-meta">
+                <code>rtx-pro-6000</code> · <code>DP=8 x TP=1</code> ·
+                vLLM 0.34.0 · NVFP4 ·
+                c=1 E2E p90: <strong>3.86 s</strong> ·
+                Peak: <strong>4,172.4 tok/s</strong> (DP=8 @ c=24/GPU)
+              </p>
+            </div>
+            <a class="gh-link" href="https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp1-vllm-nvfp4-mtp4" target="_blank" rel="noopener">View on GitHub ↗</a>
+          </div>
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(this, 'recipe-tp1-vllm-nvfp4-mtp4-serve')">serve.sh</button>
+            <button class="tab-btn" onclick="switchTab(this, 'recipe-tp1-vllm-nvfp4-mtp4-gke')">deploy-gke.yaml</button>
+          </div>
+          <div class="tab-pane active" id="recipe-tp1-vllm-nvfp4-mtp4-serve"><div class="code-wrap"><div class="code-bar"><span>serve.sh</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>#!/usr/bin/env bash
+set -euo pipefail
+
+# Recipe: tp1-vllm-nvfp4-mtp4 (DP=8 x TP=1)
+# Container: vllm/vllm-openai:v0.34.0
+export HF_XET_HIGH_PERFORMANCE=1
+
+# NOTE: Prefix caching is ENABLED by default for production.
+# Pass --no-enable-prefix-caching only to reproduce uncached stress benchmarks.
+exec vllm serve nvidia/Qwen3.8-27B-NVFP4 \
+  --host=0.0.0.0 \
+  --port=8000 \
+  --trust-remote-code \
+  --language-model-only \
+  --max-model-len=16384 \
+  --kv-cache-dtype=fp8 \
+  --mamba-ssm-cache-dtype=bfloat16 \
+  --max-num-batched-tokens=4096 \
+  --max-num-seqs=256 \
+  --gpu-memory-utilization=0.90 \
+  &#x27;--speculative-config={&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:4}&#x27; \
+  &quot;$@&quot;
+</code></pre></div></div>
+          <div class="tab-pane" id="recipe-tp1-vllm-nvfp4-mtp4-gke"><div class="code-wrap"><div class="code-bar"><span>deploy-gke.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwen38-27b-nvfp4-dp8
+  namespace: default
+  labels:
+    app: qwen38-27b-nvfp4-dp8
+spec:
+  replicas: 8
+  selector:
+    matchLabels:
+      app: qwen38-27b-nvfp4-dp8
+  template:
+    metadata:
+      labels:
+        app: qwen38-27b-nvfp4-dp8
+    spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Equal
+          value: present
+          effect: NoSchedule
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-rtx-pro-6000
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:v0.34.0
+          args:
+            - nvidia/Qwen3.8-27B-NVFP4
+            - --host=0.0.0.0
+            - --port=8000
+            - --trust-remote-code
+            - --language-model-only
+            - --max-model-len=16384
+            - --kv-cache-dtype=fp8
+            - --mamba-ssm-cache-dtype=bfloat16
+            - --max-num-batched-tokens=4096
+            - --max-num-seqs=256
+            - --gpu-memory-utilization=0.90
+            - &#x27;--speculative-config={&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:4}&#x27;
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: HF_HOME
+              value: &quot;/hf-cache&quot;
+            - name: HF_XET_HIGH_PERFORMANCE
+              value: &quot;1&quot;
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token
+                  key: token
+          resources:
+            requests:
+              cpu: &quot;16&quot;
+              memory: &quot;80Gi&quot;
+              nvidia.com/gpu: &quot;1&quot;
+            limits:
+              cpu: &quot;32&quot;
+              memory: &quot;128Gi&quot;
+              nvidia.com/gpu: &quot;1&quot;
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 45
+            periodSeconds: 10
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: hf-cache
+              mountPath: /hf-cache
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Gi
+        - name: hf-cache
+          hostPath:
+            path: /mnt/stateful_partition/kube-ephemeral-ssd/hf-cache
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen38-27b-nvfp4-dp8-svc
+  namespace: default
+spec:
+  selector:
+    app: qwen38-27b-nvfp4-dp8
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+</code></pre></div></div>
+        </article>
+        
+        <article class="recipe-card" id="recipe-tp2-vllm-nvfp4-mtp4">
+          <div class="recipe-head">
+            <div>
+              <h3>Qwen3.8-27B — <code>tp2-vllm-nvfp4-mtp4</code></h3>
+              <p class="recipe-meta">
+                <code>rtx-pro-6000</code> · <code>DP=4 x TP=2</code> ·
+                vLLM 0.34.0 · NVFP4 ·
+                c=1 E2E p90: <strong>2.62 s</strong> ·
+                Peak: <strong>2,090.9 tok/s</strong> (DP=4 @ c=16/rep)
+              </p>
+            </div>
+            <a class="gh-link" href="https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp2-vllm-nvfp4-mtp4" target="_blank" rel="noopener">View on GitHub ↗</a>
+          </div>
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(this, 'recipe-tp2-vllm-nvfp4-mtp4-serve')">serve.sh</button>
+            <button class="tab-btn" onclick="switchTab(this, 'recipe-tp2-vllm-nvfp4-mtp4-gke')">deploy-gke.yaml</button>
+          </div>
+          <div class="tab-pane active" id="recipe-tp2-vllm-nvfp4-mtp4-serve"><div class="code-wrap"><div class="code-bar"><span>serve.sh</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>#!/usr/bin/env bash
+set -euo pipefail
+
+# Recipe: tp2-vllm-nvfp4-mtp4 (DP=4 x TP=2)
+# Container: vllm/vllm-openai:v0.34.0
+export HF_XET_HIGH_PERFORMANCE=1
+export NCCL_P2P_LEVEL=&quot;SYS&quot;
+export VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=&quot;1&quot;
+
+# NOTE: Prefix caching is ENABLED by default for production.
+# Pass --no-enable-prefix-caching only to reproduce uncached stress benchmarks.
+exec vllm serve nvidia/Qwen3.8-27B-NVFP4 \
+  --host=0.0.0.0 \
+  --port=8000 \
+  --trust-remote-code \
+  --language-model-only \
+  --max-model-len=16384 \
+  --kv-cache-dtype=fp8 \
+  --mamba-ssm-cache-dtype=bfloat16 \
+  --max-num-batched-tokens=4096 \
+  --max-num-seqs=256 \
+  --tensor-parallel-size=2 \
+  --gpu-memory-utilization=0.85 \
+  &#x27;--speculative-config={&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:4}&#x27; \
+  &quot;$@&quot;
+</code></pre></div></div>
+          <div class="tab-pane" id="recipe-tp2-vllm-nvfp4-mtp4-gke"><div class="code-wrap"><div class="code-bar"><span>deploy-gke.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwen38-27b-nvfp4-tp2
+  namespace: default
+  labels:
+    app: qwen38-27b-nvfp4-tp2
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: qwen38-27b-nvfp4-tp2
+  template:
+    metadata:
+      labels:
+        app: qwen38-27b-nvfp4-tp2
+    spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Equal
+          value: present
+          effect: NoSchedule
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-rtx-pro-6000
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:v0.34.0
+          args:
+            - nvidia/Qwen3.8-27B-NVFP4
+            - --host=0.0.0.0
+            - --port=8000
+            - --trust-remote-code
+            - --language-model-only
+            - --max-model-len=16384
+            - --kv-cache-dtype=fp8
+            - --mamba-ssm-cache-dtype=bfloat16
+            - --max-num-batched-tokens=4096
+            - --max-num-seqs=256
+            - --tensor-parallel-size=2
+            - --gpu-memory-utilization=0.85
+            - &#x27;--speculative-config={&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:4}&#x27;
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: HF_HOME
+              value: &quot;/hf-cache&quot;
+            - name: HF_XET_HIGH_PERFORMANCE
+              value: &quot;1&quot;
+            - name: NCCL_P2P_LEVEL
+              value: &quot;SYS&quot;
+            - name: VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC
+              value: &quot;1&quot;
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token
+                  key: token
+          resources:
+            requests:
+              cpu: &quot;32&quot;
+              memory: &quot;160Gi&quot;
+              nvidia.com/gpu: &quot;2&quot;
+            limits:
+              cpu: &quot;64&quot;
+              memory: &quot;256Gi&quot;
+              nvidia.com/gpu: &quot;2&quot;
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 45
+            periodSeconds: 10
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: hf-cache
+              mountPath: /hf-cache
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 32Gi
+        - name: hf-cache
+          hostPath:
+            path: /mnt/stateful_partition/kube-ephemeral-ssd/hf-cache
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen38-27b-nvfp4-tp2-svc
+  namespace: default
+spec:
+  selector:
+    app: qwen38-27b-nvfp4-tp2
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+</code></pre></div></div>
+        </article>
+        
+        <article class="recipe-card" id="recipe-tp4-vllm-nvfp4-mtp4">
+          <div class="recipe-head">
+            <div>
+              <h3>Qwen3.8-27B — <code>tp4-vllm-nvfp4-mtp4</code></h3>
+              <p class="recipe-meta">
+                <code>rtx-pro-6000</code> · <code>DP=2 x TP=4</code> ·
+                vLLM 0.34.0 · NVFP4 ·
+                c=1 E2E p90: <strong>2.13 s</strong> ·
+                Peak: <strong>1,137.2 tok/s</strong> (DP=2 @ c=16/rep)
+              </p>
+            </div>
+            <a class="gh-link" href="https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp4-vllm-nvfp4-mtp4" target="_blank" rel="noopener">View on GitHub ↗</a>
+          </div>
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(this, 'recipe-tp4-vllm-nvfp4-mtp4-serve')">serve.sh</button>
+            <button class="tab-btn" onclick="switchTab(this, 'recipe-tp4-vllm-nvfp4-mtp4-gke')">deploy-gke.yaml</button>
+          </div>
+          <div class="tab-pane active" id="recipe-tp4-vllm-nvfp4-mtp4-serve"><div class="code-wrap"><div class="code-bar"><span>serve.sh</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>#!/usr/bin/env bash
+set -euo pipefail
+
+# Recipe: tp4-vllm-nvfp4-mtp4 (DP=2 x TP=4)
+# Container: vllm/vllm-openai:v0.34.0
+export HF_XET_HIGH_PERFORMANCE=1
+export NCCL_P2P_LEVEL=&quot;SYS&quot;
+export VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=&quot;1&quot;
+
+# NOTE: Prefix caching is ENABLED by default for production.
+# Pass --no-enable-prefix-caching only to reproduce uncached stress benchmarks.
+exec vllm serve nvidia/Qwen3.8-27B-NVFP4 \
+  --host=0.0.0.0 \
+  --port=8000 \
+  --trust-remote-code \
+  --language-model-only \
+  --max-model-len=16384 \
+  --kv-cache-dtype=fp8 \
+  --mamba-ssm-cache-dtype=bfloat16 \
+  --max-num-batched-tokens=4096 \
+  --max-num-seqs=256 \
+  --tensor-parallel-size=4 \
+  --gpu-memory-utilization=0.85 \
+  &#x27;--speculative-config={&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:4}&#x27; \
+  &quot;$@&quot;
+</code></pre></div></div>
+          <div class="tab-pane" id="recipe-tp4-vllm-nvfp4-mtp4-gke"><div class="code-wrap"><div class="code-bar"><span>deploy-gke.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwen38-27b-nvfp4-tp4
+  namespace: default
+  labels:
+    app: qwen38-27b-nvfp4-tp4
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: qwen38-27b-nvfp4-tp4
+  template:
+    metadata:
+      labels:
+        app: qwen38-27b-nvfp4-tp4
+    spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Equal
+          value: present
+          effect: NoSchedule
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-rtx-pro-6000
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:v0.34.0
+          args:
+            - nvidia/Qwen3.8-27B-NVFP4
+            - --host=0.0.0.0
+            - --port=8000
+            - --trust-remote-code
+            - --language-model-only
+            - --max-model-len=16384
+            - --kv-cache-dtype=fp8
+            - --mamba-ssm-cache-dtype=bfloat16
+            - --max-num-batched-tokens=4096
+            - --max-num-seqs=256
+            - --tensor-parallel-size=4
+            - --gpu-memory-utilization=0.85
+            - &#x27;--speculative-config={&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:4}&#x27;
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: HF_HOME
+              value: &quot;/hf-cache&quot;
+            - name: HF_XET_HIGH_PERFORMANCE
+              value: &quot;1&quot;
+            - name: NCCL_P2P_LEVEL
+              value: &quot;SYS&quot;
+            - name: VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC
+              value: &quot;1&quot;
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token
+                  key: token
+          resources:
+            requests:
+              cpu: &quot;64&quot;
+              memory: &quot;320Gi&quot;
+              nvidia.com/gpu: &quot;4&quot;
+            limits:
+              cpu: &quot;128&quot;
+              memory: &quot;512Gi&quot;
+              nvidia.com/gpu: &quot;4&quot;
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 45
+            periodSeconds: 10
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: hf-cache
+              mountPath: /hf-cache
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Gi
+        - name: hf-cache
+          hostPath:
+            path: /mnt/stateful_partition/kube-ephemeral-ssd/hf-cache
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen38-27b-nvfp4-tp4-svc
+  namespace: default
+spec:
+  selector:
+    app: qwen38-27b-nvfp4-tp4
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+</code></pre></div></div>
+        </article>
+        
+        <article class="recipe-card" id="recipe-tp8-vllm-nvfp4-mtp4">
+          <div class="recipe-head">
+            <div>
+              <h3>Qwen3.8-27B — <code>tp8-vllm-nvfp4-mtp4</code></h3>
+              <p class="recipe-meta">
+                <code>rtx-pro-6000</code> · <code>1 x TP=8</code> ·
+                vLLM 0.34.0 · NVFP4 ·
+                c=1 E2E p90: <strong>1.76 s</strong> ·
+                Peak: <strong>578.9 tok/s</strong> (TP=8 @ c=16)
+              </p>
+            </div>
+            <a class="gh-link" href="https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp8-vllm-nvfp4-mtp4" target="_blank" rel="noopener">View on GitHub ↗</a>
+          </div>
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(this, 'recipe-tp8-vllm-nvfp4-mtp4-serve')">serve.sh</button>
+            <button class="tab-btn" onclick="switchTab(this, 'recipe-tp8-vllm-nvfp4-mtp4-gke')">deploy-gke.yaml</button>
+          </div>
+          <div class="tab-pane active" id="recipe-tp8-vllm-nvfp4-mtp4-serve"><div class="code-wrap"><div class="code-bar"><span>serve.sh</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>#!/usr/bin/env bash
+set -euo pipefail
+
+# Recipe: tp8-vllm-nvfp4-mtp4 (1 x TP=8)
+# Container: vllm/vllm-openai:v0.34.0
+# Prerequisite: install the skinny Triton in_proj_ba plugin (qwen_g4_kernels) in the vLLM environment:
+#   pip install git+https://github.com/jawadaminGOOG/g4-recipes.git#subdirectory=plugins/qwen_g4_kernels
+
+export HF_XET_HIGH_PERFORMANCE=1
+export NCCL_P2P_LEVEL=&quot;SYS&quot;
+export VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=&quot;1&quot;
+
+# NOTE: Prefix caching is ENABLED by default for production.
+# Pass --no-enable-prefix-caching only to reproduce uncached stress benchmarks.
+exec vllm serve nvidia/Qwen3.8-27B-NVFP4 \
+  --host=0.0.0.0 \
+  --port=8000 \
+  --trust-remote-code \
+  --language-model-only \
+  --max-model-len=16384 \
+  --kv-cache-dtype=fp8 \
+  --mamba-ssm-cache-dtype=bfloat16 \
+  --max-num-batched-tokens=4096 \
+  --max-num-seqs=256 \
+  --tensor-parallel-size=8 \
+  --gpu-memory-utilization=0.85 \
+  &#x27;--speculative-config={&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:4}&#x27; \
+  &quot;$@&quot;
+</code></pre></div></div>
+          <div class="tab-pane" id="recipe-tp8-vllm-nvfp4-mtp4-gke"><div class="code-wrap"><div class="code-bar"><span>deploy-gke.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwen38-27b-nvfp4-tp8-mtp4
+  namespace: default
+  labels:
+    app: qwen38-27b-nvfp4-tp8-mtp4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qwen38-27b-nvfp4-tp8-mtp4
+  template:
+    metadata:
+      labels:
+        app: qwen38-27b-nvfp4-tp8-mtp4
+    spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Equal
+          value: present
+          effect: NoSchedule
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-rtx-pro-6000
+      containers:
+        - name: vllm
+          # NOTE: Build/use an image with qwen_g4_kernels pre-installed, or install via initContainer/command.
+          image: vllm/vllm-openai:v0.34.0
+          args:
+            - nvidia/Qwen3.8-27B-NVFP4
+            - --host=0.0.0.0
+            - --port=8000
+            - --trust-remote-code
+            - --language-model-only
+            - --max-model-len=16384
+            - --kv-cache-dtype=fp8
+            - --mamba-ssm-cache-dtype=bfloat16
+            - --max-num-batched-tokens=4096
+            - --max-num-seqs=256
+            - --tensor-parallel-size=8
+            - --gpu-memory-utilization=0.85
+            - &#x27;--speculative-config={&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:4}&#x27;
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: HF_HOME
+              value: &quot;/hf-cache&quot;
+            - name: HF_XET_HIGH_PERFORMANCE
+              value: &quot;1&quot;
+            - name: NCCL_P2P_LEVEL
+              value: &quot;SYS&quot;
+            - name: VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC
+              value: &quot;1&quot;
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token
+                  key: token
+          resources:
+            requests:
+              cpu: &quot;128&quot;
+              memory: &quot;640Gi&quot;
+              nvidia.com/gpu: &quot;8&quot;
+            limits:
+              cpu: &quot;256&quot;
+              memory: &quot;1024Gi&quot;
+              nvidia.com/gpu: &quot;8&quot;
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 45
+            periodSeconds: 10
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: hf-cache
+              mountPath: /hf-cache
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Gi
+        - name: hf-cache
+          hostPath:
+            path: /mnt/stateful_partition/kube-ephemeral-ssd/hf-cache
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen38-27b-nvfp4-tp8-mtp4-svc
+  namespace: default
+spec:
+  selector:
+    app: qwen38-27b-nvfp4-tp8-mtp4
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+</code></pre></div></div>
+        </article>
+        
+        <article class="recipe-card" id="recipe-tp8-vllm-nvfp4-mtp5">
+          <div class="recipe-head">
+            <div>
+              <h3>Qwen3.8-27B — <code>tp8-vllm-nvfp4-mtp5</code></h3>
+              <p class="recipe-meta">
+                <code>rtx-pro-6000</code> · <code>1 x TP=8</code> ·
+                vLLM 0.34.0 · NVFP4 ·
+                c=1 E2E p90: <strong>1.65 s</strong> ·
+                Peak: <strong>400.5 tok/s</strong> (TP=8 @ c=2)
+              </p>
+            </div>
+            <a class="gh-link" href="https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp8-vllm-nvfp4-mtp5" target="_blank" rel="noopener">View on GitHub ↗</a>
+          </div>
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(this, 'recipe-tp8-vllm-nvfp4-mtp5-serve')">serve.sh</button>
+            <button class="tab-btn" onclick="switchTab(this, 'recipe-tp8-vllm-nvfp4-mtp5-gke')">deploy-gke.yaml</button>
+          </div>
+          <div class="tab-pane active" id="recipe-tp8-vllm-nvfp4-mtp5-serve"><div class="code-wrap"><div class="code-bar"><span>serve.sh</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>#!/usr/bin/env bash
+set -euo pipefail
+
+# Recipe: tp8-vllm-nvfp4-mtp5 (1 x TP=8)
+# Container: vllm/vllm-openai:v0.34.0
+# Prerequisite: install the skinny Triton in_proj_ba plugin (qwen_g4_kernels) in the vLLM environment:
+#   pip install git+https://github.com/jawadaminGOOG/g4-recipes.git#subdirectory=plugins/qwen_g4_kernels
+
+export HF_XET_HIGH_PERFORMANCE=1
+export NCCL_P2P_LEVEL=&quot;SYS&quot;
+export VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=&quot;1&quot;
+
+# NOTE: Prefix caching is ENABLED by default for production.
+# Pass --no-enable-prefix-caching only to reproduce uncached stress benchmarks.
+exec vllm serve nvidia/Qwen3.8-27B-NVFP4 \
+  --host=0.0.0.0 \
+  --port=8000 \
+  --trust-remote-code \
+  --language-model-only \
+  --max-model-len=16384 \
+  --kv-cache-dtype=fp8 \
+  --mamba-ssm-cache-dtype=bfloat16 \
+  --max-num-batched-tokens=4096 \
+  --max-num-seqs=256 \
+  --tensor-parallel-size=8 \
+  --gpu-memory-utilization=0.85 \
+  &#x27;--speculative-config={&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:5}&#x27; \
+  &quot;$@&quot;
+</code></pre></div></div>
+          <div class="tab-pane" id="recipe-tp8-vllm-nvfp4-mtp5-gke"><div class="code-wrap"><div class="code-bar"><span>deploy-gke.yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwen38-27b-nvfp4-tp8-mtp5
+  namespace: default
+  labels:
+    app: qwen38-27b-nvfp4-tp8-mtp5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qwen38-27b-nvfp4-tp8-mtp5
+  template:
+    metadata:
+      labels:
+        app: qwen38-27b-nvfp4-tp8-mtp5
+    spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Equal
+          value: present
+          effect: NoSchedule
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-rtx-pro-6000
+      containers:
+        - name: vllm
+          # NOTE: Build/use an image with qwen_g4_kernels pre-installed, or install via initContainer/command.
+          image: vllm/vllm-openai:v0.34.0
+          args:
+            - nvidia/Qwen3.8-27B-NVFP4
+            - --host=0.0.0.0
+            - --port=8000
+            - --trust-remote-code
+            - --language-model-only
+            - --max-model-len=16384
+            - --kv-cache-dtype=fp8
+            - --mamba-ssm-cache-dtype=bfloat16
+            - --max-num-batched-tokens=4096
+            - --max-num-seqs=256
+            - --tensor-parallel-size=8
+            - --gpu-memory-utilization=0.85
+            - &#x27;--speculative-config={&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:5}&#x27;
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: HF_HOME
+              value: &quot;/hf-cache&quot;
+            - name: HF_XET_HIGH_PERFORMANCE
+              value: &quot;1&quot;
+            - name: NCCL_P2P_LEVEL
+              value: &quot;SYS&quot;
+            - name: VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC
+              value: &quot;1&quot;
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token
+                  key: token
+          resources:
+            requests:
+              cpu: &quot;128&quot;
+              memory: &quot;640Gi&quot;
+              nvidia.com/gpu: &quot;8&quot;
+            limits:
+              cpu: &quot;256&quot;
+              memory: &quot;1024Gi&quot;
+              nvidia.com/gpu: &quot;8&quot;
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 45
+            periodSeconds: 10
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: hf-cache
+              mountPath: /hf-cache
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Gi
+        - name: hf-cache
+          hostPath:
+            path: /mnt/stateful_partition/kube-ephemeral-ssd/hf-cache
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen38-27b-nvfp4-tp8-mtp5-svc
+  namespace: default
+spec:
+  selector:
+    app: qwen38-27b-nvfp4-tp8-mtp5
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+</code></pre></div></div>
+        </article>
+        
+  </section>
+
+  <!-- METHODOLOGY -->
+  <section class="page" id="page-methodology">
+    <div class="page-header">
+      <div class="breadcrumb">Benchmarks</div>
+      <h1>Benchmarking Harness &amp; Methodology</h1>
+      <a class="gh-link" href="https://github.com/kkr16/inference-recipes/tree/main/bench" target="_blank" rel="noopener">View bench/ on GitHub ↗</a>
+    </div>
+    <div class="prose"><p>Shared scripts for generating exact-token synthetic workloads, running async OpenAI-compatible streaming benchmarks, and regenerating the root catalog table.</p>
+<h2 id="scripts">Scripts</h2>
+<ul><li><a href="https://github.com/kkr16/inference-recipes/blob/main/scripts/make_dataset.py" target="_blank" rel="noopener"><code>scripts/make_dataset.py</code></a>: Generates unique, realistic multi-turn enterprise prompts verified to tokenize to an exact input sequence length (default: <code>10,000</code> tokens, <code>add_special_tokens=False</code>).</li><li><a href="https://github.com/kkr16/inference-recipes/blob/main/scripts/bench_client.py" target="_blank" rel="noopener"><code>scripts/bench_client.py</code></a>: Async streaming client for <code>/v1/completions</code> supporting both closed-loop concurrency sweeps and open-loop Poisson arrival rates. Collects client-side <code>TTFT</code>, <code>TPOT</code>, <code>ITL</code>, <code>E2E</code> percentiles and scrapes Prometheus <code>/metrics</code> deltas (including speculative decoding acceptance length for both vLLM and SGLang).</li><li><a href="https://github.com/kkr16/inference-recipes/blob/main/scripts/build_catalog.py" target="_blank" rel="noopener"><code>scripts/build_catalog.py</code></a>: Reads all <code>models/**/metadata.yaml</code> files and prints/updates the Markdown leaderboard in the root <code>README.md</code>.</li></ul>
+<h2 id="standard-methodology">Standard Methodology</h2>
+<ol><li><strong>Exact token counts</strong>: Prompts are verified to exact ISL (<code>add_special_tokens=False</code>), and requests pass <code>max_tokens=&lt;OSL&gt;</code>, <code>ignore_eos=True</code>, <code>temperature=0.0</code>, <code>stream=True</code>.</li><li><strong>Uncached stress baseline</strong>: Unless a recipe explicitly benchmarks prefix caching, disable prefix/radix caching (<code>--no-enable-prefix-caching</code> on vLLM, <code>--disable-radix-cache</code> on SGLang) during measurement so every request pays full prefill cost. <em>(Re-enable prefix caching in production!)</em></li><li><strong>Warmup</strong>: Every concurrency/RPS point executes un-timed warmup requests before collecting timed metrics.</li><li><strong>Zero-error gate</strong>: All published numbers require <code>0</code> failed requests.</li></ol>
+<h2 id="quick-usage">Quick Usage</h2>
+<div class="code-wrap"><div class="code-bar"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code class="lang-bash"># 1. Generate 128 exact 10k-token prompts (requires transformers)
+python3 bench/scripts/make_dataset.py \
+  --tokenizer nvidia/Qwen3.8-27B-NVFP4 \
+  --target-tokens 10000 \
+  --num-prompts 128 \
+  --output /tmp/prompts-10k.jsonl
+
+# 2. Run a closed-loop concurrency benchmark
+python3 bench/scripts/bench_client.py \
+  --url http://127.0.0.1:8000 \
+  --model nvidia/Qwen3.8-27B-NVFP4 \
+  --dataset /tmp/prompts-10k.jsonl \
+  --max-tokens 500 \
+  --concurrency 4 \
+  --num-requests 16 \
+  --warmup 2 \
+  --output /tmp/result_c4.json
+
+# 3. Rebuild the root README catalog table from metadata.yaml files
+python3 bench/scripts/build_catalog.py --write</code></pre></div></div>
+  </section>
+
+  <!-- MODEL GUIDES -->
+  
+        <section class="page" id="page-guide-qwen3-8-27b-rtx-pro-6000">
+          <div class="page-header">
+            <div class="breadcrumb">Models / qwen3.8-27b / rtx-pro-6000</div>
+            <h1>Qwen3.8-27B on NVIDIA RTX PRO 6000 Blackwell — Hill-Climb &amp; 8x Scaling Guide</h1>
+            <a class="gh-link" href="https://github.com/kkr16/inference-recipes/blob/main/models/qwen3.8-27b/rtx-pro-6000/README.md" target="_blank" rel="noopener">Edit / View Source on GitHub ↗</a>
+          </div>
+          <div class="prose"><div class="callout callout-important"><div class="callout-title">IMPORTANT</div><p><strong>Headline Result (<code>10,000</code> ISL / <code>500</code> OSL on NVIDIA RTX PRO 6000 Blackwell Server Edition)</strong>:</p>
+<ul><li><strong>1x GPU Winner (<code>vLLM 0.34.0</code> + <code>nvidia/Qwen3.8-27B-NVFP4</code> + <code>MTP-4</code> + <code>--mamba-ssm-cache-dtype bfloat16</code> + <code>--max-num-batched-tokens 4096</code>)</strong>: Delivers <strong>6.10x faster single-stream speed than Native BF16</strong> (<code>149.35</code> vs <code>24.49 out_tok/s</code>; <strong>3.54x</strong> over baseline <code>FP8</code> <code>42.23</code>), <strong>5.29x lower E2E p90 vs Native BF16</strong> (<code>3.86s</code> vs <code>20.42s</code> at <code>c=1</code>; <strong><code>4.17s</code> p90 at <code>c=2</code></strong>; <strong><code>7.26s</code> p90 at <code>c=4</code></strong>), and <strong><code>439.72–521.55 out_tok/s</code></strong> at <code>c=8..24</code>. Adding <code>VLLM_USE_BREAKABLE_CUDAGRAPH=0</code> + <code>torch.compile mode=3</code> pushes <code>1x</code> <code>c=16</code> further to <strong><code>513.36 out_tok/s</code></strong> (<code>22.35s</code> p90) and <code>c=1</code> to <strong><code>150.22 out_tok/s</code></strong> (<code>3.75s</code> p90), while omitting the <code>0.90</code> cap lets vLLM <code>0.34.0</code>&#x27;s <strong>Extensible KV Cache</strong> reclaim <code>7.82 GiB</code> for <strong><code>66.74x</code> (<code>1,093,391</code> tok)</strong> per-GPU KV headroom (<code>533.9x</code> across <code>DP=8</code>).</li><li><strong><code>1</code> GPU NVFP4 Still Beats <code>8</code> GPUs Native BF16 (Even With <code>PCIE_IPC + P2P=SYS</code>)</strong>: A single tuned <code>NVFP4 + MTP-4</code> GPU (<code>502.40</code> default / <strong><code>513.36</code></strong> <code>mode=3</code> at <code>c=16</code>) outperforms all <strong>8 GPUs running Naive BF16 <code>TP=8</code></strong> (<code>291.24</code>) by <code>1.76x</code> AND still edges out <strong>8 GPUs running Tuned <code>BF16 + MTP-4 TP=8</code> with BOTH <code>NCCL_P2P_LEVEL=SYS</code> + <code>VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=1</code></strong> (<code>502.17</code>).</li><li><strong><code>1.65s</code> E2E p90 ACHIEVED Uncached Over PCIe Gen5 (<code>VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=1</code> + <code>NCCL_P2P_LEVEL=SYS</code> + <code>qwen_g4_kernels</code> Triton <code>in_proj_ba</code>)</strong>: Pairing <code>NCCL_P2P_LEVEL=SYS</code> (<code>38–40 GB/s</code> prefill P2P DMA) with FlashInfer&#x27;s PCIe CUDA-IPC AllReduce (<code>VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=1</code>) broke <code>&lt; 2.0s</code> (<code>1.81s</code> p90, <code>305.39 tok/s</code>). Stacking the <strong><code>qwen_g4_kernels</code> skinny Triton GEMM plugin</strong> for the <code>48</code> Gated DeltaNet <code>in_proj_ba</code> projections (<code>[12, 5120]</code> at <code>TP=8</code>) adds another <strong><code>+8.1%</code></strong> single-stream speedup (<code>-130</code> to <code>-160 ms</code>):</li><li><strong><code>TP=8</code> NVFP4 <code>MTP-5</code> + <code>qwen_g4_kernels</code> (<code>c=1</code>)</strong>: <strong><code>330.03 out_tok/s</code></strong> (<code>4.54 tok/step</code>), <code>TTFT 748.7 / 750.1 ms</code>, <code>TPOT 1.49 / 1.80 ms</code>, <strong><code>E2E 1.494s p50 / 1.648s p90</code></strong> (<strong>352 ms below <code>2.00s</code> p90</strong>!).</li><li><strong><code>TP=8</code> NVFP4 <code>MTP-4</code> + <code>qwen_g4_kernels</code> (<code>c=1</code>)</strong>: <strong><code>310.64 out_tok/s</code></strong>, <code>TTFT 748.3 / 749.3 ms</code>, <code>TPOT 1.69 / 2.02 ms</code>, <strong><code>E2E 1.592s p50 / 1.758s p90</code></strong> (<code>c=4</code>: <code>503.68 tok/s</code>; <code>c=16</code>: <code>578.90 tok/s</code>).</li><li><strong>Bonus <code>1x</code> FP8 Win (<code>draft_lm_head_quantization: fp8</code> + <code>qwen_g4_kernels</code>)</strong>: Lifts single-GPU FP8 <code>c=1</code> by <strong><code>+12.9%</code></strong> (<code>99.94 → 112.79 out_tok/s</code>) and cuts E2E p90 <strong><code>-12.1%</code></strong> (<code>5.59s → 4.91s</code>), breaking <code>&lt; 5.0s</code> on 1 FP8 GPU (<code>59.85x</code> KV headroom).</li><li><strong>8x GPU Architecture Winner (<code>DP=8 × TP=1</code>)</strong>: Even after <code>PCIE_IPC + P2P=SYS + qwen_g4_kernels</code> rescues <code>TP=4</code> (<code>1,137.2</code> node tok/s) and <code>TP=8</code> (<code>578.9</code>), Data Parallelism across 8 GPUs still dominates cluster capacity: <strong><code>2,735.8 out_tok/s</code></strong> at <code>c=4/GPU</code> (<code>7.26s</code> p90) and <strong><code>4,019.2 out_tok/s</code></strong> (<code>4,106.9</code> with <code>mode=3</code>) at <code>c=16/GPU</code> (<code>4,172.4</code> at <code>c=24/GPU</code>) — <strong><code>3.61x</code></strong> over <code>DP=2 × TP=4 IPC+SYS</code> and <strong><code>7.09x</code></strong> over <code>TP=8 IPC+SYS</code>.</li></ul></div>
+<hr/>
+<h2 id="pareto-frontier-charts">Pareto Frontier Charts</h2>
+<p><figure class="chart-fig"><img src="assets/qwen3.8-27b-rtx-pro-6000/pareto_interactivity_vs_throughput.png" alt="Qwen3.8-27B on RTX PRO 6000 — Interactivity vs Throughput per GPU" loading="lazy" onclick="openLightbox(this.src, this.alt)"/><figcaption>Qwen3.8-27B on RTX PRO 6000 — Interactivity vs Throughput per GPU</figcaption></figure></p>
+<p><figure class="chart-fig"><img src="assets/qwen3.8-27b-rtx-pro-6000/pareto_node_throughput_vs_e2e_p90.png" alt="Qwen3.8-27B on 8x RTX PRO 6000 — Node Throughput vs E2E Latency p90" loading="lazy" onclick="openLightbox(this.src, this.alt)"/><figcaption>Qwen3.8-27B on 8x RTX PRO 6000 — Node Throughput vs E2E Latency p90</figcaption></figure></p>
+<p><em>Charts are reproducibly generated from <a href="https://github.com/kkr16/inference-recipes/blob/main/results/metrics.json" target="_blank" rel="noopener"><code>results/metrics.json</code></a> via <code>python3 scripts/generate_charts.py</code>.</em></p>
+<h2 id="quick-pick-recipes">Quick-Pick Recipes</h2>
+<p>Runnable <code>serve.sh</code>, <code>deploy-gke.yaml</code>, and <code>metadata.yaml</code> bundles for each tier:</p>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Recipe</th><th style="text-align:left">Topology</th><th style="text-align:left">Quant &amp; Stack</th><th style="text-align:left">Best For</th></tr></thead><tbody><tr><td style="text-align:left"><a href="#recipe-tp1-vllm-nvfp4-mtp4" onclick="navTo('recipes')"><code>tp1-vllm-nvfp4-mtp4</code></a></td><td style="text-align:left"><code>DP=8 × TP=1</code></td><td style="text-align:left">NVFP4 + MTP-4 (<code>bf16</code> SSM, <code>bt=4096</code>)</td><td style="text-align:left"><strong>Default production</strong> — balanced latency &amp; cluster capacity (<code>4,019–4,172 tok/s</code> node)</td></tr><tr><td style="text-align:left"><a href="#recipe-tp1-vllm-nvfp4-mtp4-mode3" onclick="navTo('recipes')"><code>tp1-vllm-nvfp4-mtp4-mode3</code></a></td><td style="text-align:left"><code>DP=8 × TP=1</code></td><td style="text-align:left">NVFP4 + MTP-4 + <code>torch.compile mode=3</code> + Extensible KV</td><td style="text-align:left"><strong>Peak batch throughput &amp; max KV headroom</strong> (<code>4,107 tok/s</code> @ <code>c=16</code>, <code>533.9x</code> 16k slots)</td></tr><tr><td style="text-align:left"><a href="#recipe-tp1-vllm-fp8-mtp4" onclick="navTo('recipes')"><code>tp1-vllm-fp8-mtp4</code></a></td><td style="text-align:left"><code>DP=8 × TP=1</code></td><td style="text-align:left">FP8 + MTP-4 + FP8 draft <code>lm_head</code> + <code>qwen_g4_kernels</code></td><td style="text-align:left"><strong>FP8 fallback</strong> (<code>&lt; 5.0s</code> E2E p90 on 1 GPU, <code>59.85x</code> KV headroom)</td></tr><tr><td style="text-align:left"><a href="#recipe-tp2-vllm-nvfp4-mtp4" onclick="navTo('recipes')"><code>tp2-vllm-nvfp4-mtp4</code></a></td><td style="text-align:left"><code>DP=4 × TP=2</code> (<code>PIX</code>)</td><td style="text-align:left">NVFP4 + MTP-4 + <code>PCIE_IPC</code> + <code>P2P=SYS</code></td><td style="text-align:left"><strong>Snappy interactive</strong> (<code>2.62s</code> p90 @ <code>c=1</code>, <code>2,102 tok/s</code> node peak)</td></tr><tr><td style="text-align:left"><a href="#recipe-tp4-vllm-nvfp4-mtp4" onclick="navTo('recipes')"><code>tp4-vllm-nvfp4-mtp4</code></a></td><td style="text-align:left"><code>DP=2 × TP=4</code></td><td style="text-align:left">NVFP4 + MTP-4 + <code>PCIE_IPC</code> + <code>P2P=SYS</code></td><td style="text-align:left"><strong>Ultra-low latency</strong> (<code>2.13s</code> p90 @ <code>c=1</code>, <code>1,137 tok/s</code> node peak)</td></tr><tr><td style="text-align:left"><a href="#recipe-tp8-vllm-nvfp4-mtp4" onclick="navTo('recipes')"><code>tp8-vllm-nvfp4-mtp4</code></a></td><td style="text-align:left"><code>1 × TP=8</code></td><td style="text-align:left">NVFP4 + MTP-4 + <code>PCIE_IPC</code> + <code>P2P=SYS</code> + <code>qwen_g4_kernels</code></td><td style="text-align:left"><strong>Strict <code>&lt; 2.0s</code> p90</strong> (<code>1.76s</code> p90 @ <code>c=1</code>, <code>310.6 tok/s</code>)</td></tr><tr><td style="text-align:left"><a href="#recipe-tp8-vllm-nvfp4-mtp5" onclick="navTo('recipes')"><code>tp8-vllm-nvfp4-mtp5</code></a></td><td style="text-align:left"><code>1 × TP=8</code></td><td style="text-align:left">NVFP4 + MTP-5 + <code>PCIE_IPC</code> + <code>P2P=SYS</code> + <code>qwen_g4_kernels</code></td><td style="text-align:left"><strong>Fastest single-stream</strong> (<code>1.65s</code> p90 @ <code>c=1</code>, <code>330.0 tok/s</code>)</td></tr></tbody></table></div>
+<hr/>
+<h2 id="1-executive-summary-recommended-operating-tiers">1. Executive Summary &amp; Recommended Operating Tiers</h2>
+<p>For a high-reactivity <code>10,000</code>-token context / <code>500</code>-token output dense workload on the hybrid Gated DeltaNet (GDN/Mamba) + attention <code>Qwen3.8-27B</code> architecture, moving from naive <code>FP8</code> serving to tuned <code>NVFP4 + MTP</code> fundamentally shifts the latency-throughput frontier on <code>SM120</code> Blackwell GPUs.</p>
+<h3 id="recommended-production-operating-tiers">Recommended Production Operating Tiers</h3>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">SLA / Reactivity Tier</th><th style="text-align:left">Topology &amp; Engine Config</th><th style="text-align:left">Concurrent / RPS Target</th><th style="text-align:left"><code>out_tok/s</code> (Replica / Node)</th><th style="text-align:left">TTFT p50 / p90 (ms)</th><th style="text-align:left">TPOT p50 / p90 (ms)</th><th style="text-align:left">E2E p50 / p90 (s)</th></tr></thead><tbody><tr><td style="text-align:left"><strong>Tier 0a: Strict <code>&lt; 2.0s</code> p90 Uncached</strong></td><td style="text-align:left"><strong><code>1 × TP=8</code>, NVFP4 + <code>MTP-5</code> (<code>MTP-4</code> opt.) + <code>PCIE_IPC</code> + <code>P2P=SYS</code> + <code>qwen_g4_kernels</code></strong></td><td style="text-align:left"><code>c=1</code> (<code>1</code> total)</td><td style="text-align:left"><code>330.03</code> / <strong><code>330.0</code></strong> <em>(MTP-4: <code>310.6</code>)</em></td><td style="text-align:left"><code>748.7 / 750.1</code></td><td style="text-align:left"><code>1.49 / 1.80</code></td><td style="text-align:left"><strong><code>1.49 / 1.65</code></strong> <em>(MTP-4: <strong><code>1.59 / 1.76</code></strong>)</em></td></tr><tr><td style="text-align:left"><strong>Tier 0b: Ultra-Low-Latency (<code>~2.1s p90</code>)</strong></td><td style="text-align:left"><strong><code>DP=2 × TP=4</code>, NVFP4 + MTP-4 + <code>PCIE_IPC</code> + <code>P2P=SYS</code></strong></td><td style="text-align:left"><code>c=1/rep</code> (<code>2</code> total)</td><td style="text-align:left"><code>258.63</code> / <strong><code>517.3</code></strong></td><td style="text-align:left"><code>748.8 / 761.0</code></td><td style="text-align:left"><code>2.26 / 2.77</code></td><td style="text-align:left"><strong><code>1.88 / 2.13</code></strong></td></tr><tr><td style="text-align:left"><strong>Tier 1: Sub-2.7s Snappy (<code>4x</code> Density)</strong></td><td style="text-align:left"><strong><code>DP=4 × TP=2</code> (<code>PIX</code>), NVFP4 + MTP-4 + <code>PCIE_IPC</code> (+ Triton opt.)</strong></td><td style="text-align:left"><code>c=1/rep</code> (<code>4</code> total)</td><td style="text-align:left"><code>211.21</code> / <strong><code>844.8</code></strong> <em>(stock: <code>828.4</code>)</em></td><td style="text-align:left"><code>774.8 / 775.1</code></td><td style="text-align:left"><code>3.03 / 3.78</code></td><td style="text-align:left"><strong><code>2.29 / 2.66</code></strong> <em>(stock: <code>2.36 / 2.62</code>)</em></td></tr><tr><td style="text-align:left"><strong>Tier 2: Low-Latency Interactive (<code>1x</code> GPU)</strong></td><td style="text-align:left"><strong><code>DP=8 × TP=1</code>, NVFP4 + MTP-4 (<code>mode=3</code> opt.)</strong></td><td style="text-align:left"><code>c=2/GPU</code> (<code>16</code> total)</td><td style="text-align:left"><code>249.91</code> / <strong><code>1,999.3</code></strong></td><td style="text-align:left"><code>899.1 / 1402.7</code></td><td style="text-align:left"><code>5.92 / 6.80</code></td><td style="text-align:left"><strong><code>3.88 / 4.17</code></strong></td></tr><tr><td style="text-align:left"><strong>Tier 3: Balanced High-Reactivity (Default)</strong></td><td style="text-align:left"><strong><code>DP=8 × TP=1</code>, NVFP4 + MTP-4 (<code>MTP-5</code> opt.)</strong></td><td style="text-align:left"><code>0.45 RPS/GPU</code> (<code>3.6</code> node RPS)</td><td style="text-align:left"><code>199.98</code> / <strong><code>1,599.8</code></strong></td><td style="text-align:left"><code>886.3 / 1435.7</code></td><td style="text-align:left"><code>7.10 / 11.55</code></td><td style="text-align:left"><strong><code>4.74 / 7.11</code></strong> <em>(MTP-5: <code>4.50 / 6.82</code>)</em></td></tr><tr><td style="text-align:left"><strong>Tier 3b: Closed-Loop Balanced</strong></td><td style="text-align:left"><strong><code>DP=8 × TP=1</code>, NVFP4 + MTP-4 (<code>MTP-5</code> opt.)</strong></td><td style="text-align:left"><code>c=4/GPU</code> (<code>32</code> total)</td><td style="text-align:left"><code>341.97</code> / <strong><code>2,735.8</code></strong></td><td style="text-align:left"><code>871.0 / 2051.3</code></td><td style="text-align:left"><code>8.97 / 11.54</code></td><td style="text-align:left"><strong><code>5.54 / 7.26</code></strong> <em>(MTP-5: <code>5.89 / 6.97</code>)</em></td></tr><tr><td style="text-align:left"><strong>Tier 4: High-Throughput Interactive</strong></td><td style="text-align:left"><strong><code>DP=8 × TP=1</code>, NVFP4 + MTP-4 (<code>mode=3</code> opt.)</strong></td><td style="text-align:left"><code>c=8/GPU</code> (<code>64</code> total)</td><td style="text-align:left"><code>446.18</code> / <strong><code>3,569.4</code></strong></td><td style="text-align:left"><code>1524.4 / 4627.8</code></td><td style="text-align:left"><code>13.36 / 16.39</code></td><td style="text-align:left"><strong><code>8.17 / 12.69</code></strong> <em>(default: <code>439.7</code> / <code>12.30s</code>)</em></td></tr><tr><td style="text-align:left"><strong>Tier 5: Peak Batch / Capacity</strong></td><td style="text-align:left"><strong><code>DP=8 × TP=1</code>, NVFP4 + MTP-4 (<code>mode=3</code>, Extensible KV <code>66.74x</code>)</strong></td><td style="text-align:left"><code>c=16/GPU</code> (<code>128</code> total)</td><td style="text-align:left"><code>513.36</code> / <strong><code>4,106.9</code></strong></td><td style="text-align:left"><code>2630.5 / 9712.9</code></td><td style="text-align:left"><code>23.81 / 28.14</code></td><td style="text-align:left"><strong><code>15.16 / 22.35</code></strong> <em>(default: <code>4,019.2</code> / <code>24.05s</code>)</em></td></tr></tbody></table></div>
+<div class="callout callout-tip"><div class="callout-title">TIP</div><p><strong>MTP-4 vs MTP-5 Choice</strong>: Use <strong><code>num_speculative_tokens: 4</code></strong> as the general production default (higher KV concurrency headroom <code>61.26x</code> vs <code>56.35x</code>, best <code>c=2</code> and <code>c=12</code> throughput). Switch to <strong><code>num_speculative_tokens: 5</code></strong> only when open-loop arrival rates stay in <strong><code>0.45–0.65 RPS/GPU</code> (<code>c=4..6</code>)</strong>, where higher draft acceptance (<code>4.47–4.49 tok/step</code>) trims Poisson E2E p90 by <code>-4%</code> to <code>-8%</code> (<code>6.82s</code> vs <code>7.11s</code> at <code>0.45 RPS</code>, <code>11.62s</code> vs <code>12.68s</code> at <code>0.65 RPS</code>).</p></div>
+<hr/>
+<h2 id="2-hardware-topology-benchmark-methodology">2. Hardware Topology &amp; Benchmark Methodology</h2>
+<h3 id="node-gpu-architecture">Node &amp; GPU Architecture</h3>
+<p>All runs executed on an 8-GPU GCP G4 GKE node (<code>g4-standard-384</code>, 384 vCPUs, 1.5 TiB RAM, Container-Optimized OS):</p>
+<ul><li><strong>Accelerators</strong>: <code>8x NVIDIA RTX PRO 6000 Blackwell Server Edition</code> (<code>94.97 GiB</code> allocatable VRAM per GPU, <code>SM120</code>, GDDR7).</li><li><strong>Interconnect</strong>: PCIe Gen5 without NVLink. <code>nvidia-smi topo -m</code> confirmed asymmetric dual-socket PCIe layout:</li><li><strong>NUMA Socket 0 (GPUs 0–3)</strong>: <code>(0,1)</code> and <code>(2,3)</code> connected via <code>PIX</code> (single PCIe bridge); cross-pair <code>(0,2)/(1,3)</code> connected via <code>NODE</code> (PCIe host bridge).</li><li><strong>NUMA Socket 1 (GPUs 4–7)</strong>: Symmetric local PCIe layout on Socket 1.</li><li><strong>Cross-Socket (GPUs 0–3 ↔ GPUs 4–7)</strong>: Connected via <code>SYS</code> (QPI/UPI host interconnect).</li></ul>
+<div class="code-wrap"><div class="code-bar"><span>topology diagram</span></div><pre class="mermaid-pre"><code>flowchart LR
+  subgraph S0[&quot;NUMA Socket 0 (GPUs 0-3)&quot;]
+    G0[&quot;GPU 0&quot;] &lt;--&gt;|&quot;PIX (Custom + PyNCCL)&quot;| G1[&quot;GPU 1&quot;]
+    G2[&quot;GPU 2&quot;] &lt;--&gt;|&quot;PIX (Custom + PyNCCL)&quot;| G3[&quot;GPU 3&quot;]
+    G0 &amp; G1 &lt;--&gt;|&quot;NODE (PyNCCL only)&quot;| G2 &amp; G3
+  end
+  subgraph S1[&quot;NUMA Socket 1 (GPUs 4-7)&quot;]
+    G4[&quot;GPU 4&quot;] &lt;--&gt;|&quot;PIX&quot;| G5[&quot;GPU 5&quot;]
+    G6[&quot;GPU 6&quot;] &lt;--&gt;|&quot;PIX&quot;| G7[&quot;GPU 7&quot;]
+    G4 &amp; G5 &lt;--&gt;|&quot;NODE&quot;| G6 &amp; G7
+  end
+  S0 &lt;--&gt;|&quot;SYS Dual-Socket (PyNCCL only)&quot;| S1</code></pre></div>
+<h3 id="workload-measurement-protocol">Workload &amp; Measurement Protocol</h3>
+<p>To reflect high-reactivity enterprise production traffic fairly without synthetic inflated numbers:</p>
+<ul><li><strong>Dataset (<a href="https://github.com/kkr16/inference-recipes/blob/main/bench/scripts/make_dataset.py" target="_blank" rel="noopener"><code>bench/scripts/make_dataset.py</code></a>)</strong>: 128 unique synthetic enterprise customer-escalation packets (multi-channel ticket turns, CRM/webhook audit traces, SLA policy clauses), each verified to tokenize to <strong>exact <code>10,000</code> input tokens</strong> (<code>add_special_tokens=False</code>). Across all 254 timed benchmark executions (<code>4,884</code> requests, <code>61</code> server logs), measured <code>mean_prompt_tokens</code> was uniformly <code>10,000</code>.</li><li><strong>Decode Target (<a href="https://github.com/kkr16/inference-recipes/blob/main/bench/scripts/bench_client.py" target="_blank" rel="noopener"><code>bench/scripts/bench_client.py</code></a>)</strong>: OpenAI streaming <code>/v1/completions</code> with <code>max_tokens=500</code>, <code>ignore_eos=True</code>, <code>temperature=0.0</code>, <code>stream=True</code>, guaranteeing <strong>exact <code>500</code> completion tokens</strong> (<code>mean=500</code>, <code>min=500</code>, <code>max=500</code>) across every request.</li><li><strong>Zero Prefix Cache Cheat</strong>: Both engines ran with prefix/radix caching explicitly disabled (<code>--no-enable-prefix-caching</code> on vLLM, <code>--disable-radix-cache</code> on SGLang) so every request paid the full 10k-token prefill cost.</li><li><strong>FP8 KV Cache</strong>: Both engines used FP8 E4M3 KV cache (<code>--kv-cache-dtype fp8</code> on vLLM, <code>--kv-cache-dtype fp8_e4m3</code> on SGLang) and <code>--max-model-len 16384</code>.</li><li><strong>Warmup &amp; Telemetry</strong>: Each concurrency/RPS run executed dedicated un-timed warmup requests first, then collected client SSE timestamps (<code>TTFT</code>, <code>TPOT = (E2E - TTFT) / 499</code>, <code>E2E</code>, <code>ITL</code>) alongside Prometheus <code>/metrics</code> counter deltas (<code>vllm:spec_decode_num_*</code> / <code>sglang:spec_accept_length</code>). <strong>Zero failed requests</strong> occurred across all 254 timed benchmark JSONs (<code>4,884</code> completed requests, <code>0</code> failed).</li><li><strong>Containers</strong>: <code>vllm/vllm-openai:v0.34.0</code> and <code>lmsysorg/sglang:v0.5.23-cu130</code>.</li></ul>
+<hr/>
+<h2 id="3-stage-1-serving-engine-sglang-vs-vllm-quantization-fp8-vs-nvfp4">3. Stage 1: Serving Engine (<code>SGLang</code> vs <code>vLLM</code>) &amp; Quantization (<code>FP8</code> vs <code>NVFP4</code>)</h2>
+<p>First, we evaluated <code>SGLang 0.5.23</code> (<code>S1–S4</code>) vs <code>vLLM 0.34.0</code> (<code>V1–V4</code>) head-to-head on <code>1x RTX PRO 6000</code> across <code>Qwen/Qwen3.8-27B-FP8</code> and <code>nvidia/Qwen3.8-27B-NVFP4</code>, both unspeculated and with <code>MTP-3</code>.</p>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Cell</th><th style="text-align:left">Engine &amp; Version</th><th style="text-align:left">Model</th><th style="text-align:left">Spec Decode</th><th style="text-align:left"><code>c=1</code> <code>out_tok/s</code> (E2E p90)</th><th style="text-align:left"><code>c=4</code> <code>out_tok/s</code> (E2E p90)</th><th style="text-align:left"><code>c=8</code> <code>out_tok/s</code> (E2E p90)</th><th style="text-align:left">KV Cache Capacity (<code>16k</code> slots)</th></tr></thead><tbody><tr><td style="text-align:left"><strong><code>S1</code></strong></td><td style="text-align:left"><code>SGLang 0.5.23</code></td><td style="text-align:left"><code>FP8</code></td><td style="text-align:left">None</td><td style="text-align:left"><code>41.42</code> (<code>12.08s</code>)</td><td style="text-align:left"><code>125.98</code> (<code>15.88s</code>)</td><td style="text-align:left"><code>194.60</code> (<code>20.56s</code>)</td><td style="text-align:left"><code>1,188,765</code> tok (<code>72.6x</code>)</td></tr><tr><td style="text-align:left"><strong><code>V1</code></strong></td><td style="text-align:left"><code>vLLM 0.34.0</code></td><td style="text-align:left"><code>FP8</code></td><td style="text-align:left">None</td><td style="text-align:left"><code>42.23</code> (<code>11.84s</code>)</td><td style="text-align:left"><code>126.76</code> (<code>15.89s</code>)</td><td style="text-align:left"><code>197.75</code> (<code>23.39s</code>)</td><td style="text-align:left"><code>1,212,416</code> tok (<code>74.0x</code>)</td></tr><tr><td style="text-align:left"><strong><code>S2</code></strong></td><td style="text-align:left"><code>SGLang 0.5.23</code></td><td style="text-align:left"><code>FP8</code></td><td style="text-align:left"><code>MTP-3</code> (<code>EAGLE</code>)</td><td style="text-align:left"><code>94.65</code> (<code>5.38s</code>)</td><td style="text-align:left"><code>211.54</code> (<code>10.93s</code>)</td><td style="text-align:left"><code>279.31</code> (<code>19.43s</code>)</td><td style="text-align:left"><code>459,783</code> tok (<code>28.1x</code>)</td></tr><tr><td style="text-align:left"><strong><code>V2</code></strong></td><td style="text-align:left"><code>vLLM 0.34.0</code></td><td style="text-align:left"><code>FP8</code></td><td style="text-align:left"><code>MTP-3</code></td><td style="text-align:left"><code>97.31</code> (<code>5.28s</code>)</td><td style="text-align:left"><code>222.81</code> (<code>10.12s</code>)</td><td style="text-align:left"><code>298.10</code> (<code>19.08s</code>)</td><td style="text-align:left"><code>705,936</code> tok (<code>43.1x</code>)</td></tr><tr><td style="text-align:left"><strong><code>S3</code></strong></td><td style="text-align:left"><code>SGLang 0.5.23</code></td><td style="text-align:left"><code>NVFP4</code></td><td style="text-align:left">None</td><td style="text-align:left"><code>60.28</code> (<code>8.30s</code>)</td><td style="text-align:left"><code>168.87</code> (<code>11.84s</code>)</td><td style="text-align:left"><code>262.89</code> (<code>15.22s</code>)</td><td style="text-align:left"><code>1,372,399</code> tok (<code>83.8x</code>)</td></tr><tr><td style="text-align:left"><strong><code>V3</code></strong></td><td style="text-align:left"><code>vLLM 0.34.0</code></td><td style="text-align:left"><code>NVFP4</code></td><td style="text-align:left">None</td><td style="text-align:left"><code>59.89</code> (<code>8.35s</code>)</td><td style="text-align:left"><code>179.54</code> (<code>11.18s</code>)</td><td style="text-align:left"><code>279.35</code> (<code>16.37s</code>)</td><td style="text-align:left"><code>1,473,389</code> tok (<code>89.9x</code>)</td></tr><tr><td style="text-align:left"><strong><code>S4</code></strong></td><td style="text-align:left"><code>SGLang 0.5.23</code></td><td style="text-align:left"><code>NVFP4</code></td><td style="text-align:left"><code>MTP-3</code> (<code>EAGLE</code>)</td><td style="text-align:left"><code>122.47</code> (<code>4.46s</code>)</td><td style="text-align:left"><code>280.62</code> (<code>8.55s</code>)</td><td style="text-align:left"><code>374.37</code> (<code>13.85s</code>)</td><td style="text-align:left"><code>721,415</code> tok (<code>44.0x</code>)</td></tr><tr><td style="text-align:left"><strong><code>V4</code></strong></td><td style="text-align:left"><code>vLLM 0.34.0</code></td><td style="text-align:left"><code>NVFP4</code></td><td style="text-align:left"><code>MTP-3</code></td><td style="text-align:left"><strong><code>129.84</code> (<code>4.15s</code>)</strong></td><td style="text-align:left"><strong><code>321.09</code> (<code>7.27s</code>)</strong></td><td style="text-align:left"><strong><code>417.33</code> (<code>13.36s</code>)</strong></td><td style="text-align:left"><code>804,240</code> tok (<code>49.1x</code>)</td></tr></tbody></table></div>
+<h3 id="key-stage-1-engineering-findings">Key Stage 1 Engineering Findings</h3>
+<ol><li><strong>Parity Without MTP (<code>~1–2%</code>), Clear vLLM Lead With NVFP4 + MTP (<code>+6%</code> to <code>+14.4%</code>)</strong>: Without speculative decoding on <code>FP8</code>, SGLang and vLLM perform within <code>2%</code>. Once combining <code>NVFP4</code> (<code>FlashInferCutlassNvFp4LinearKernel</code> via FlashInfer <code>CutlassFp4GemmRunner</code> on SM120) with <code>MTP-3</code>, vLLM pulls ahead by <strong><code>+14.4%</code> at <code>c=4</code></strong> (<code>321.09</code> vs <code>280.62 out_tok/s</code>) and <strong><code>+11.5%</code> at <code>c=8</code></strong> (<code>417.33</code> vs <code>374.37</code>).</li><li><strong>Speculative Hybrid Mamba/GDN Concurrency Overhead</strong>: Enabling MTP allocates per-draft-step Mamba/GDN recurrent state slots alongside paged KV blocks. SGLang defaulted to capping <code>--max-running-requests</code> at <code>48</code> with <code>MTP</code> (<code>available_gpu_mem</code> tightened to <code>10.63 GB</code>), whereas vLLM cleanly ran <code>--max-num-seqs 256</code> with Breakable CUDA Graphs (<code>VLLM_USE_BREAKABLE_CUDAGRAPH=1</code>) and FlashInfer XQA decode.</li><li><strong>NVFP4 Prefill &amp; Decode Uplift</strong>: On <code>V3</code> vs <code>V1</code> (<code>c=1</code>), <code>NVFP4</code> cut weights memory from <code>27.55 GiB</code> to <code>18.96 GiB</code>, dropped <code>10k</code> prefill TTFT p50 from <strong><code>995.4 ms</code> → <code>676.2 ms</code> (<code>-32%</code>)</strong>, and raised baseline decode throughput from <code>42.23</code> → <code>59.89 out_tok/s</code> (<code>+41.8%</code>). With MTP (<code>V4</code> vs <code>V2</code>), <code>NVFP4</code> further amplified draft+verify throughput by <strong><code>+33.4%</code> (<code>c=1</code>)</strong> and <strong><code>+40.0%</code> (<code>c=8</code>)</strong>.</li></ol>
+<hr/>
+<h2 id="4-stage-2-single-variable-hill-climb-ablations-1x-gpu">4. Stage 2: Single-Variable Hill-Climb Ablations (<code>1x</code> GPU)</h2>
+<p>Using <code>V4</code> (<code>vLLM 0.34.0</code> + <code>nvidia/Qwen3.8-27B-NVFP4</code> + <code>--max-num-seqs 256</code>) as our base rung, we isolated one variable per step across <code>c=1, 4, 8, 12</code>.</p>
+<h3 id="rung-a-mtp-speculative-depth-0-2-3-4-5">Rung A: MTP Speculative Depth (<code>0, 2, 3, 4, 5</code>)</h3>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Run ID</th><th style="text-align:left">MTP Depth</th><th style="text-align:left"><code>16k</code> KV Slots</th><th style="text-align:left"><code>c=1</code> <code>out/s</code> (<code>tok/step</code>)</th><th style="text-align:left"><code>c=4</code> <code>out/s</code> (<code>tok/step</code>)</th><th style="text-align:left"><code>c=8</code> <code>out/s</code> (<code>tok/step</code>)</th><th style="text-align:left"><code>c=12</code> <code>out/s</code> (<code>tok/step</code>)</th><th style="text-align:left"><code>c=1</code> / <code>c=4</code> E2E p90</th></tr></thead><tbody><tr><td style="text-align:left"><strong><code>V3</code></strong></td><td style="text-align:left"><code>0</code> (None)</td><td style="text-align:left"><code>89.93x</code></td><td style="text-align:left"><code>59.89</code> (<code>1.00</code>)</td><td style="text-align:left"><code>179.54</code> (<code>1.00</code>)</td><td style="text-align:left"><code>279.35</code> (<code>1.00</code>)</td><td style="text-align:left"><code>352.10</code> (<code>1.00</code> via <code>v3_ext</code>)</td><td style="text-align:left"><code>8.35s</code> / <code>11.18s</code></td></tr><tr><td style="text-align:left"><strong><code>rA1</code></strong></td><td style="text-align:left"><code>MTP-2</code></td><td style="text-align:left"><code>57.10x</code></td><td style="text-align:left"><code>116.10</code> (<code>2.62</code>)</td><td style="text-align:left"><code>304.57</code> (<code>2.75</code>)</td><td style="text-align:left"><code>393.80</code> (<code>2.66</code>)</td><td style="text-align:left"><code>437.57</code> (<code>2.68</code>)</td><td style="text-align:left"><code>4.54s</code> / <code>7.47s</code></td></tr><tr><td style="text-align:left"><strong><code>V4</code></strong></td><td style="text-align:left"><code>MTP-3</code></td><td style="text-align:left"><code>49.09x</code></td><td style="text-align:left"><code>129.84</code> (<code>3.22</code>)</td><td style="text-align:left"><code>321.09</code> (<code>3.36</code>)</td><td style="text-align:left"><code>417.33</code> (<code>3.37</code>)</td><td style="text-align:left">—</td><td style="text-align:left"><code>4.15s</code> / <code>7.27s</code></td></tr><tr><td style="text-align:left"><strong><code>rA2</code></strong></td><td style="text-align:left"><strong><code>MTP-4</code></strong></td><td style="text-align:left"><code>43.84x</code></td><td style="text-align:left"><code>149.95</code> (<code>3.99</code>)</td><td style="text-align:left"><code>326.47</code> (<code>3.86</code>)</td><td style="text-align:left"><code>433.88</code> (<code>4.09</code>)</td><td style="text-align:left"><strong><code>481.60</code> (<code>4.23</code>)</strong></td><td style="text-align:left"><code>3.60s</code> / <code>7.30s</code></td></tr><tr><td style="text-align:left"><strong><code>rA3</code></strong></td><td style="text-align:left"><strong><code>MTP-5</code></strong></td><td style="text-align:left"><code>39.14x</code></td><td style="text-align:left"><strong><code>155.78</code> (<code>4.50</code>)</strong></td><td style="text-align:left"><strong><code>348.30</code> (<code>4.74</code>)</strong></td><td style="text-align:left"><strong><code>435.80</code> (<code>4.56</code>)</strong></td><td style="text-align:left"><code>454.19</code> (<code>4.25</code>)</td><td style="text-align:left"><strong><code>3.56s</code> / <code>6.69s</code></strong></td></tr></tbody></table></div>
+<ul><li><strong>Takeaway</strong>: Moving <code>MTP-3 → MTP-4</code> unlocked <strong><code>+15.5%</code> at <code>c=1</code></strong> (<code>129.84 → 149.95 out_tok/s</code>) and raised mean step yield to <strong><code>3.86–4.23 tok/step</code></strong>. Moving further to <code>MTP-5</code> boosted <code>c=1..4</code> (<code>348.30 out_tok/s</code>, <code>4.74 tok/step</code>!), but <strong>regressed at <code>c=12</code> (<code>454.19</code> vs <code>481.60 out_tok/s</code>)</strong> because verifying 6 candidate tokens per request at higher batch sizes increases target-model compute pressure and KV cache block consumption (<code>39.14x</code> vs <code>43.84x</code> max <code>16k</code> slots).</li></ul>
+<hr/>
+<h3 id="rung-b-hybrid-gdn-mamba-ssm-state-cache-dtype-float32-vs-bfloat16">Rung B: Hybrid GDN/Mamba SSM State Cache Dtype (<code>float32</code> vs <code>bfloat16</code>)</h3>
+<p><code>Qwen3.8-27B</code> checkpoints specify <code>mamba_ssm_dtype: &quot;float32&quot;</code> in config. Keeping FP32 Mamba state padded attention block size to <code>1,600</code> (<code>V4</code> MTP-3) and <code>1,664</code> (<code>rA2</code> MTP-4, <code>43.84x</code> 16k capacity). Passing <code>--mamba-ssm-cache-dtype bfloat16</code> cut the GDN recurrent footprint in half, allowing vLLM to shrink attention block size to <strong><code>896</code> tokens</strong>.</p>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Run ID</th><th style="text-align:left">SSM State Dtype</th><th style="text-align:left">Attn Block Size</th><th style="text-align:left">GPU KV Cache (<code>16k</code> Slots)</th><th style="text-align:left"><code>c=1</code> <code>out/s</code> (<code>tok/step</code>)</th><th style="text-align:left"><code>c=4</code> <code>out/s</code> (<code>tok/step</code>)</th><th style="text-align:left"><code>c=8</code> <code>out/s</code> (<code>tok/step</code>)</th><th style="text-align:left"><code>c=12</code> <code>out/s</code> (<code>tok/step</code>)</th></tr></thead><tbody><tr><td style="text-align:left"><strong><code>rA2</code></strong></td><td style="text-align:left"><code>float32</code> (default)</td><td style="text-align:left"><code>1,600</code> tok</td><td style="text-align:left"><code>718,274</code> (<code>43.84x</code>)</td><td style="text-align:left"><code>149.95</code> (<code>3.99</code>)</td><td style="text-align:left"><code>326.47</code> (<code>3.86</code>)</td><td style="text-align:left"><code>433.88</code> (<code>4.09</code>)</td><td style="text-align:left"><code>481.60</code> (<code>4.23</code>)</td></tr><tr><td style="text-align:left"><strong><code>rB1</code></strong></td><td style="text-align:left"><strong><code>bfloat16</code></strong></td><td style="text-align:left"><strong><code>896</code> tok</strong></td><td style="text-align:left"><strong><code>980,630</code> (<code>59.85x</code>)</strong></td><td style="text-align:left"><code>149.19</code> (<code>3.90</code>)</td><td style="text-align:left"><strong><code>341.27</code> (<code>4.05</code>)</strong></td><td style="text-align:left"><strong><code>444.25</code> (<code>4.03</code>)</strong></td><td style="text-align:left"><strong><code>481.88</code> (<code>3.82</code>)</strong></td></tr></tbody></table></div>
+<ul><li><strong>Takeaway</strong>: <code>--mamba-ssm-cache-dtype bfloat16</code> delivered <strong><code>+36.5%</code> more usable KV capacity</strong> (<code>43.84x → 59.85x</code>) and <strong><code>+4.5%</code> throughput at <code>c=4</code></strong> (<code>341.27</code> vs <code>326.47 out_tok/s</code>) with <strong>zero degradation in MTP acceptance</strong> (<code>4.05</code> vs <code>3.86 tok/step</code> at <code>c=4</code>, <code>4.03</code> vs <code>4.09</code> at <code>c=8</code>).</li></ul>
+<hr/>
+<h3 id="rung-c-prefill-decode-interleaving-max-num-batched-tokens">Rung C: Prefill-Decode Interleaving (<code>--max-num-batched-tokens</code>)</h3>
+<p>Chunked prefill budget directly controls TTFT tail spikes vs active decode stalls when <code>10,000</code>-token requests arrive concurrently.</p>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Run ID</th><th style="text-align:left"><code>--max-num-batched-tokens</code></th><th style="text-align:left"><code>16k</code> KV Slots</th><th style="text-align:left"><code>c=1</code> <code>out/s</code> (E2E p90)</th><th style="text-align:left"><code>c=4</code> <code>out/s</code> (TTFT p90 / E2E p90)</th><th style="text-align:left"><code>c=8</code> <code>out/s</code> (TTFT p90 / E2E p90)</th><th style="text-align:left"><code>c=12</code> <code>out/s</code> (TTFT p50 / E2E p90)</th></tr></thead><tbody><tr><td style="text-align:left"><strong><code>rC1</code></strong></td><td style="text-align:left"><code>16384</code></td><td style="text-align:left"><code>56.35x</code></td><td style="text-align:left"><code>151.12</code> (<code>3.56s</code>)</td><td style="text-align:left"><code>332.89</code> (<code>2826.5ms</code> / <code>7.15s</code>)</td><td style="text-align:left"><code>433.56</code> (<code>5350.4ms</code> / <code>12.49s</code>)</td><td style="text-align:left"><code>481.86</code> (<code>2233.8ms</code> / <code>18.15s</code>)</td></tr><tr><td style="text-align:left"><strong><code>rB1</code></strong></td><td style="text-align:left">Default (<code>8192</code>)</td><td style="text-align:left"><code>59.85x</code></td><td style="text-align:left"><code>149.19</code> (<code>3.70s</code>)</td><td style="text-align:left"><code>341.27</code> (<code>2293.0ms</code> / <code>7.17s</code>)</td><td style="text-align:left"><code>444.25</code> (<code>5173.9ms</code> / <code>12.04s</code>)</td><td style="text-align:left"><code>481.88</code> (<code>1971.8ms</code> / <code>18.30s</code>)</td></tr><tr><td style="text-align:left"><strong><code>rC2</code></strong></td><td style="text-align:left"><strong><code>4096</code> (Winner)</strong></td><td style="text-align:left"><strong><code>61.26x</code></strong></td><td style="text-align:left"><strong><code>151.68</code> (<code>3.66s</code>)</strong></td><td style="text-align:left"><strong><code>341.98</code> (<code>2048.9ms</code> / <code>7.26s</code>)</strong></td><td style="text-align:left"><code>439.76</code> (<strong><code>4428.0ms</code></strong> / <code>12.30s</code>)</td><td style="text-align:left"><strong><code>484.37</code> (<code>1590.6ms</code> / <code>18.63s</code>)</strong></td></tr><tr><td style="text-align:left"><strong><code>rC3</code></strong></td><td style="text-align:left"><code>2048</code></td><td style="text-align:left"><code>61.53x</code></td><td style="text-align:left"><code>149.54</code> (<code>3.85s</code>)</td><td style="text-align:left"><code>340.61</code> (<code>1979.7ms</code> / <code>6.84s</code>)</td><td style="text-align:left"><code>443.79</code> (<code>4485.2ms</code> / <code>11.83s</code>)</td><td style="text-align:left"><code>481.24</code> (<strong><code>3177.4ms</code></strong>, Queue delay)</td></tr></tbody></table></div>
+<ul><li><strong>Takeaway</strong>:</li><li><code>16384</code> (<code>rC1</code>) lets a single <code>10k</code> prompt monopolize an entire forward pass (<code>&gt; 10,000</code> tokens), stalling active decode batches and hurting <code>c=4</code> TTFT p90 (<code>2.83s</code> vs <code>2.05s</code>).</li><li><code>2048</code> (<code>rC3</code>) forces five prefill chunks per <code>10k</code> request, doubling <code>c=12</code> median TTFT (<code>3.18s</code> vs <code>1.59s</code>).</li><li><strong><code>4096</code> (<code>rC2</code>)</strong> achieves the cleanest Pareto knee: <strong>lowest <code>c=12</code> median TTFT (<code>1.59s</code>)</strong>, <strong>lowest <code>c=8</code> TTFT p90 (<code>4.43s</code>)</strong>, and <strong>peak <code>c=12</code> throughput (<code>484.37 out_tok/s</code>)</strong>.</li></ul>
+<hr/>
+<h3 id="rung-d1-checkpoint-lm-head-quantization-variants-bf16-ssm-mtp-4">Rung D1: Checkpoint &amp; <code>lm_head</code> Quantization Variants (<code>bf16_ssm</code> + <code>MTP-4</code>)</h3>
+<p>Even with dense weights in NVFP4, the <code>Qwen3.8</code> vocabulary (<code>248,320 × 2,560</code>) and speculative verification steps make <code>lm_head</code> projection memory-bandwidth critical. We compared <code>nvidia/Qwen3.8-27B-NVFP4</code> (quantized head) against <code>RadixArk/Qwen3.8-27B-NVFP4-BF16-LMHead</code> (BF16 head) and <code>unsloth/Qwen3.8-27B-NVFP4</code> (<code>CutlassFP8ScaledMM</code> mixed FP8 tail/head).</p>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Run ID</th><th style="text-align:left">Checkpoint</th><th style="text-align:left">Weights Mem</th><th style="text-align:left"><code>c=1</code> <code>out/s</code> (<code>tok/step</code>)</th><th style="text-align:left"><code>c=4</code> <code>out/s</code> (<code>tok/step</code>)</th><th style="text-align:left"><code>c=8</code> <code>out/s</code> (<code>tok/step</code>)</th><th style="text-align:left"><code>c=12</code> <code>out/s</code> (<code>tok/step</code>)</th></tr></thead><tbody><tr><td style="text-align:left"><strong><code>rB1</code></strong></td><td style="text-align:left"><strong><code>nvidia/Qwen3.8-27B-NVFP4</code></strong></td><td style="text-align:left"><strong><code>19.75 GiB</code></strong></td><td style="text-align:left"><strong><code>149.19</code></strong> (<code>3.90</code>)</td><td style="text-align:left"><strong><code>341.27</code></strong> (<code>4.05</code>)</td><td style="text-align:left"><strong><code>444.25</code></strong> (<code>4.03</code>)</td><td style="text-align:left"><strong><code>481.88</code></strong> (<code>3.82</code>)</td></tr><tr><td style="text-align:left"><strong><code>rD1</code></strong></td><td style="text-align:left"><code>RadixArk/...-BF16-LMHead</code></td><td style="text-align:left"><code>21.45 GiB</code></td><td style="text-align:left"><code>132.77</code> (<code>4.38</code>)</td><td style="text-align:left"><code>313.91</code> (<code>4.26</code>)</td><td style="text-align:left"><code>408.75</code> (<code>4.16</code>)</td><td style="text-align:left"><code>453.23</code> (<code>4.06</code>)</td></tr><tr><td style="text-align:left"><strong><code>rD1b</code></strong></td><td style="text-align:left"><code>unsloth/Qwen3.8-27B-NVFP4</code></td><td style="text-align:left"><code>21.14 GiB</code></td><td style="text-align:left"><code>142.89</code> (<code>4.31</code>)</td><td style="text-align:left"><code>319.17</code> (<code>4.20</code>)</td><td style="text-align:left"><code>408.98</code> (<code>3.99</code>)</td><td style="text-align:left"><code>455.28</code> (<code>4.13</code>)</td></tr></tbody></table></div>
+<ul><li><strong>Takeaway (Bandwidth Beats Higher Acceptance)</strong>: <code>RadixArk</code> achieved up to <code>+0.48</code> higher tokens/step (<code>4.38</code> vs <code>3.90</code> at <code>c=1</code>), proving BF16 <code>lm_head</code> improves logit fidelity. However, <strong><code>nvidia/Qwen3.8-27B-NVFP4</code> was <code>+12.4%</code> (<code>c=1</code>), <code>+8.7%</code> (<code>c=4/8</code>), and <code>+6.3%</code> (<code>c=12</code>) faster net <code>out_tok/s</code></strong> because each MTP-4 verification pass reads <code>lm_head</code> for 5 token positions per sequence — reading an FP4/compact head consumes far less GDDR7 bandwidth than a 16-bit (<code>21.45 GiB</code> total model vs <code>19.75 GiB</code>) or FP8 (<code>21.14 GiB</code>) head.</li></ul>
+<hr/>
+<h3 id="rung-d2-bonus-speculator-sglang-0-5-23-incoai-qwen3-8-27b-dflash2-nvfp4">Rung D2: Bonus Speculator — <code>SGLang 0.5.23</code> + <code>incoai/Qwen3.8-27B-DFlash2</code> (<code>NVFP4</code>)</h3>
+<p>We tested the external block-diffusion draft checkpoint <code>incoai/Qwen3.8-27B-DFlash2</code> (<code>DFLASH</code>, <code>speculative_num_draft_tokens=8</code>, <code>mamba_ssm_dtype=bfloat16</code>, <code>KV=664,989 tokens</code>) against tuned native <code>vLLM MTP-4</code> and <code>MTP-5</code>.</p>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Concurrency</th><th style="text-align:left"><code>SGLang DFlash2</code> (<code>out/s</code> / E2E p90)</th><th style="text-align:left"><code>vLLM MTP-4 Tuned</code> (<code>out/s</code> / E2E p90)</th><th style="text-align:left"><code>vLLM MTP-5 Tuned</code> (<code>out/s</code> / E2E p90)</th><th style="text-align:left"><code>vLLM MTP-4</code> vs <code>DFlash2</code></th></tr></thead><tbody><tr><td style="text-align:left"><strong><code>c=1</code></strong></td><td style="text-align:left"><code>144.20</code> (<code>3.801s</code>)</td><td style="text-align:left"><strong><code>149.35</code></strong> (<code>3.856s</code>)</td><td style="text-align:left"><code>149.22</code> (<code>3.794s</code>)</td><td style="text-align:left"><strong><code>+3.6%</code></strong></td></tr><tr><td style="text-align:left"><strong><code>c=2</code></strong></td><td style="text-align:left"><code>222.53</code> (<code>5.217s</code>)</td><td style="text-align:left"><strong><code>249.91</code></strong> (<code>4.174s</code>)</td><td style="text-align:left"><code>240.89</code> (<code>4.589s</code>)</td><td style="text-align:left"><strong><code>+12.3%</code></strong></td></tr><tr><td style="text-align:left"><strong><code>c=4</code></strong></td><td style="text-align:left"><code>309.42</code> (<code>7.906s</code>)</td><td style="text-align:left"><strong><code>341.97</code></strong> (<code>7.262s</code>)</td><td style="text-align:left"><code>341.14</code> (<code>6.971s</code>)</td><td style="text-align:left"><strong><code>+10.5%</code></strong></td></tr><tr><td style="text-align:left"><strong><code>c=6</code></strong></td><td style="text-align:left"><code>351.83</code> (<code>10.938s</code>)</td><td style="text-align:left"><code>388.82</code> (<code>9.021s</code>)</td><td style="text-align:left"><strong><code>401.15</code></strong> (<code>9.952s</code>)</td><td style="text-align:left"><strong><code>+10.5%</code></strong> <em>(MTP-5 <code>+14.0%</code>)</em></td></tr><tr><td style="text-align:left"><strong><code>c=8</code></strong></td><td style="text-align:left"><code>382.82</code> (<code>13.638s</code>)</td><td style="text-align:left"><code>439.72</code> (<code>12.297s</code>)</td><td style="text-align:left"><strong><code>440.26</code></strong> (<code>12.038s</code>)</td><td style="text-align:left"><strong><code>+14.9%</code></strong></td></tr><tr><td style="text-align:left"><strong><code>c=12</code></strong></td><td style="text-align:left"><code>424.87</code> (<code>19.275s</code>)</td><td style="text-align:left"><strong><code>484.31</code></strong> (<code>18.629s</code>)</td><td style="text-align:left"><code>470.10</code> (<code>19.243s</code>)</td><td style="text-align:left"><strong><code>+14.0%</code></strong></td></tr></tbody></table></div>
+<ul><li><strong>Takeaway</strong>: <code>vLLM 0.34.0 + native MTP-4</code> outperforms <code>SGLang + DFlash2</code> at every concurrency (<code>+3.6%</code> to <code>+14.9%</code>) with lower operational complexity (no separate draft HF repo) and <code>51%</code> larger KV cache pool (<code>1,003,760</code> vs <code>664,989</code> tokens).</li></ul>
+<hr/>
+<h2 id="5-stage-3-full-1x-rtx-pro-6000-pareto-poisson-arrival-curves">5. Stage 3: Full <code>1x</code> RTX PRO 6000 Pareto &amp; Poisson Arrival Curves</h2>
+<h3 id="closed-loop-concurrency-sweep-c-1-to-24">Closed-Loop Concurrency Sweep (<code>c = 1</code> to <code>24</code>)</h3>
+<h4 id="5a-champion-stack-final-vllm-nvfp4-mtp4-tuned-nvidia-qwen3-8-27b-nvfp4-mtp-4-bfloat16-ssm-bt-4096-kv-1-003-760-61-26x">5a. Champion Stack: <code>final_vllm_nvfp4_mtp4_tuned</code> (<code>nvidia/Qwen3.8-27B-NVFP4</code>, <code>MTP-4</code>, <code>bfloat16</code> SSM, <code>bt=4096</code>, <code>KV=1,003,760</code> / <code>61.26x</code>)</h4>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Load</th><th style="text-align:left"><code>ok</code></th><th style="text-align:left"><code>out_tok/s</code></th><th style="text-align:left"><code>total_tok/s</code></th><th style="text-align:left"><code>req/s</code></th><th style="text-align:left">TTFT p50 / p90 (ms)</th><th style="text-align:left">TPOT p50 / p90 (ms)</th><th style="text-align:left">E2E p50 / p90 (s)</th><th style="text-align:left">Mean <code>tok/step</code></th></tr></thead><tbody><tr><td style="text-align:left"><strong><code>c=1</code></strong></td><td style="text-align:left"><code>10/10</code></td><td style="text-align:left"><code>149.35</code></td><td style="text-align:left"><code>3,136.28</code></td><td style="text-align:left"><code>0.299</code></td><td style="text-align:left"><code>718.1 / 719.5</code></td><td style="text-align:left"><code>5.03 / 6.29</code></td><td style="text-align:left"><code>3.221 / 3.856</code></td><td style="text-align:left"><code>3.90</code></td></tr><tr><td style="text-align:left"><strong><code>c=2</code></strong></td><td style="text-align:left"><code>12/12</code></td><td style="text-align:left"><code>249.91</code></td><td style="text-align:left"><code>5,248.08</code></td><td style="text-align:left"><code>0.500</code></td><td style="text-align:left"><code>899.1 / 1402.7</code></td><td style="text-align:left"><code>5.92 / 6.80</code></td><td style="text-align:left"><code>3.877 / 4.174</code></td><td style="text-align:left"><code>4.16</code></td></tr><tr><td style="text-align:left"><strong><code>c=4</code></strong></td><td style="text-align:left"><code>16/16</code></td><td style="text-align:left"><code>341.97</code></td><td style="text-align:left"><code>7,181.28</code></td><td style="text-align:left"><code>0.684</code></td><td style="text-align:left"><code>871.0 / 2051.3</code></td><td style="text-align:left"><code>8.97 / 11.54</code></td><td style="text-align:left"><code>5.535 / 7.262</code></td><td style="text-align:left"><code>4.05</code></td></tr><tr><td style="text-align:left"><strong><code>c=6</code></strong></td><td style="text-align:left"><code>20/20</code></td><td style="text-align:left"><code>388.82</code></td><td style="text-align:left"><code>8,165.23</code></td><td style="text-align:left"><code>0.778</code></td><td style="text-align:left"><code>1083.8 / 3186.9</code></td><td style="text-align:left"><code>11.46 / 13.12</code></td><td style="text-align:left"><code>7.008 / 9.021</code></td><td style="text-align:left"><code>4.06</code></td></tr><tr><td style="text-align:left"><strong><code>c=8</code></strong></td><td style="text-align:left"><code>24/24</code></td><td style="text-align:left"><code>439.72</code></td><td style="text-align:left"><code>9,234.19</code></td><td style="text-align:left"><code>0.879</code></td><td style="text-align:left"><code>1009.5 / 4429.7</code></td><td style="text-align:left"><code>14.01 / 17.63</code></td><td style="text-align:left"><code>8.346 / 12.297</code></td><td style="text-align:left"><code>4.02</code></td></tr><tr><td style="text-align:left"><strong><code>c=12</code></strong></td><td style="text-align:left"><code>24/24</code></td><td style="text-align:left"><code>484.31</code></td><td style="text-align:left"><code>10,170.52</code></td><td style="text-align:left"><code>0.969</code></td><td style="text-align:left"><code>1591.1 / 7482.3</code></td><td style="text-align:left"><code>18.32 / 25.48</code></td><td style="text-align:left"><code>11.774 / 18.629</code></td><td style="text-align:left"><code>3.94</code></td></tr><tr><td style="text-align:left"><strong><code>c=16</code></strong></td><td style="text-align:left"><code>32/32</code></td><td style="text-align:left"><code>502.40</code></td><td style="text-align:left"><code>10,550.38</code></td><td style="text-align:left"><code>1.005</code></td><td style="text-align:left"><code>2367.8 / 9760.7</code></td><td style="text-align:left"><code>23.89 / 29.17</code></td><td style="text-align:left"><code>14.949 / 24.050</code></td><td style="text-align:left"><code>3.95</code></td></tr><tr><td style="text-align:left"><strong><code>c=24</code></strong></td><td style="text-align:left"><code>36/36</code></td><td style="text-align:left"><strong><code>521.55</code></strong></td><td style="text-align:left"><strong><code>10,952.47</code></strong></td><td style="text-align:left"><strong><code>1.043</code></strong></td><td style="text-align:left"><code>5090.9 / 15677.3</code></td><td style="text-align:left"><code>30.52 / 43.63</code></td><td style="text-align:left"><code>24.519 / 31.279</code></td><td style="text-align:left"><code>3.88</code></td></tr></tbody></table></div>
+<h4 id="5b-high-reactivity-variant-mtp-5-tuned-full-reference-baselines">5b. High-Reactivity Variant (<code>MTP-5</code> Tuned) &amp; Full Reference Baselines</h4>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Config</th><th style="text-align:left"><code>c=1</code> <code>out/s</code> (E2E p90)</th><th style="text-align:left"><code>c=2</code> <code>out/s</code> (E2E p90)</th><th style="text-align:left"><code>c=4</code> <code>out/s</code> (E2E p90)</th><th style="text-align:left"><code>c=6</code> <code>out/s</code> (E2E p90)</th><th style="text-align:left"><code>c=8</code> <code>out/s</code> (E2E p90)</th><th style="text-align:left"><code>c=12</code> <code>out/s</code> (E2E p90)</th><th style="text-align:left"><code>c=16</code> <code>out/s</code> (E2E p90)</th><th style="text-align:left"><code>c=24</code> <code>out/s</code> (E2E p90)</th></tr></thead><tbody><tr><td style="text-align:left"><strong><code>NVFP4 + MTP-4</code> (Winner)</strong></td><td style="text-align:left"><code>149.35</code> (<code>3.86s</code>)</td><td style="text-align:left"><strong><code>249.91</code> (<code>4.17s</code>)</strong></td><td style="text-align:left"><strong><code>341.97</code></strong> (<code>7.26s</code>)</td><td style="text-align:left"><code>388.82</code> (<strong><code>9.02s</code></strong>)</td><td style="text-align:left"><code>439.72</code> (<code>12.30s</code>)</td><td style="text-align:left"><strong><code>484.31</code> (<code>18.63s</code>)</strong></td><td style="text-align:left"><strong><code>502.40</code> (<code>24.05s</code>)</strong></td><td style="text-align:left"><strong><code>521.55</code> (<code>31.28s</code>)</strong></td></tr><tr><td style="text-align:left"><strong><code>NVFP4 + MTP-5</code> Tuned</strong></td><td style="text-align:left"><code>149.22</code> (<strong><code>3.79s</code></strong>)</td><td style="text-align:left"><code>240.89</code> (<code>4.59s</code>)</td><td style="text-align:left"><code>341.14</code> (<strong><code>6.97s</code></strong>)</td><td style="text-align:left"><strong><code>401.15</code></strong> (<code>9.95s</code>)</td><td style="text-align:left"><strong><code>440.26</code> (<code>12.04s</code>)</strong></td><td style="text-align:left"><code>470.10</code> (<code>19.24s</code>)</td><td style="text-align:left">—</td><td style="text-align:left">—</td></tr><tr><td style="text-align:left"><strong><code>FP8 + MTP-4</code> Tuned</strong></td><td style="text-align:left"><code>99.94</code> (<code>5.59s</code>)</td><td style="text-align:left"><code>167.60</code> (<code>6.24s</code>)</td><td style="text-align:left"><code>231.92</code> (<code>9.58s</code>)</td><td style="text-align:left"><code>273.82</code> (<code>13.21s</code>)</td><td style="text-align:left"><code>310.35</code> (<code>17.81s</code>)</td><td style="text-align:left"><code>339.33</code> (<code>26.19s</code>)</td><td style="text-align:left"><code>366.26</code> (<code>32.67s</code>)</td><td style="text-align:left">—</td></tr><tr><td style="text-align:left"><strong><code>NVFP4</code> No MTP (<code>v3_ext</code>)</strong></td><td style="text-align:left"><code>60.75</code> (<code>8.23s</code>)</td><td style="text-align:left"><code>108.36</code> (<code>9.23s</code>)</td><td style="text-align:left"><code>185.10</code> (<code>11.38s</code>)</td><td style="text-align:left"><code>246.74</code> (<code>13.75s</code>)</td><td style="text-align:left"><code>289.84</code> (<code>16.32s</code>)</td><td style="text-align:left"><code>352.10</code> (<code>22.05s</code>)</td><td style="text-align:left"><code>394.70</code> (<code>27.30s</code>)</td><td style="text-align:left"><code>409.74</code> (<code>34.98s</code>)</td></tr><tr><td style="text-align:left"><strong><code>FP8</code> No MTP (<code>v1_ext</code>)</strong></td><td style="text-align:left"><code>42.54</code> (<code>11.76s</code>)</td><td style="text-align:left"><code>75.68</code> (<code>13.22s</code>)</td><td style="text-align:left"><code>129.38</code> (<code>16.16s</code>)</td><td style="text-align:left"><code>159.54</code> (<code>19.97s</code>)</td><td style="text-align:left"><code>203.95</code> (<code>23.29s</code>)</td><td style="text-align:left"><code>248.01</code> (<code>31.53s</code>)</td><td style="text-align:left"><code>249.53</code> (<code>36.26s</code>)</td><td style="text-align:left"><code>281.47</code> (<code>45.44s</code>)</td></tr></tbody></table></div>
+<p>Across equal tuned settings (<code>c=1..12</code>), <strong><code>NVFP4 + MTP-4</code> delivers <code>1.42x–1.49x</code> higher throughput than <code>FP8 + MTP-4</code></strong> while reducing <code>c=1</code> TTFT p90 from <code>1,039.6 ms</code> to <code>719.5 ms</code> (<code>-30.8%</code>).</p>
+<h3 id="open-loop-poisson-arrival-sweep-1x-rtx-pro-6000">Open-Loop Poisson Arrival Sweep (<code>1x</code> RTX PRO 6000)</h3>
+<p>To verify real-world queuing behavior under random Poisson arrivals (without closed-loop synchronization artifacts):</p>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Config</th><th style="text-align:left">Target Rate</th><th style="text-align:left"><code>ok</code></th><th style="text-align:left">Achieved <code>out_tok/s</code> (<code>req/s</code>)</th><th style="text-align:left">TTFT p50 / p90 (ms)</th><th style="text-align:left">TPOT p50 / p90 (ms)</th><th style="text-align:left">E2E p50 / p90 (s)</th><th style="text-align:left">Mean <code>tok/step</code></th></tr></thead><tbody><tr><td style="text-align:left"><strong><code>MTP-4</code> Tuned</strong></td><td style="text-align:left"><code>0.25 RPS</code></td><td style="text-align:left"><code>24/24</code></td><td style="text-align:left"><code>99.92</code> (<code>0.200</code>)</td><td style="text-align:left"><code>787.1 / 1049.9</code></td><td style="text-align:left"><code>6.21 / 8.42</code></td><td style="text-align:left"><code>3.849 / 5.302</code></td><td style="text-align:left"><code>3.90</code></td></tr><tr><td style="text-align:left"><strong><code>MTP-5</code> Tuned</strong></td><td style="text-align:left"><code>0.25 RPS</code></td><td style="text-align:left"><code>24/24</code></td><td style="text-align:left"><code>99.18</code> (<code>0.198</code>)</td><td style="text-align:left"><code>801.7 / 1070.7</code></td><td style="text-align:left"><code>6.00 / 9.05</code></td><td style="text-align:left"><strong><code>3.770</code></strong> / <code>5.433</code></td><td style="text-align:left"><code>4.10</code></td></tr><tr><td style="text-align:left"><strong><code>MTP-4</code> Tuned</strong></td><td style="text-align:left"><code>0.45 RPS</code></td><td style="text-align:left"><code>32/32</code></td><td style="text-align:left"><code>199.98</code> (<code>0.400</code>)</td><td style="text-align:left"><strong><code>886.3 / 1435.7</code></strong></td><td style="text-align:left"><code>7.10 / 11.55</code></td><td style="text-align:left"><code>4.741 / 7.113</code></td><td style="text-align:left"><code>3.97</code></td></tr><tr><td style="text-align:left"><strong><code>MTP-5</code> Tuned</strong></td><td style="text-align:left"><code>0.45 RPS</code></td><td style="text-align:left"><code>32/32</code></td><td style="text-align:left"><code>199.42</code> (<code>0.399</code>)</td><td style="text-align:left"><code>891.5 / 1446.1</code></td><td style="text-align:left"><strong><code>6.84 / 11.08</code></strong></td><td style="text-align:left"><strong><code>4.504 / 6.823</code></strong></td><td style="text-align:left"><code>4.49</code></td></tr><tr><td style="text-align:left"><strong><code>MTP-4</code> Tuned</strong></td><td style="text-align:left"><code>0.65 RPS</code></td><td style="text-align:left"><code>36/36</code></td><td style="text-align:left"><code>296.79</code> (<code>0.594</code>)</td><td style="text-align:left"><strong><code>1100.3</code></strong> / <code>2229.6</code></td><td style="text-align:left"><code>9.85 / 22.60</code></td><td style="text-align:left"><code>6.674 / 12.675</code></td><td style="text-align:left"><code>3.93</code></td></tr><tr><td style="text-align:left"><strong><code>MTP-5</code> Tuned</strong></td><td style="text-align:left"><code>0.65 RPS</code></td><td style="text-align:left"><code>36/36</code></td><td style="text-align:left"><code>295.37</code> (<code>0.591</code>)</td><td style="text-align:left"><code>1103.1 / 2119.2</code></td><td style="text-align:left"><strong><code>8.89 / 20.28</code></strong></td><td style="text-align:left"><strong><code>6.109 / 11.619</code></strong></td><td style="text-align:left"><code>4.47</code></td></tr><tr><td style="text-align:left"><strong><code>MTP-4</code> Tuned</strong></td><td style="text-align:left"><code>0.80 RPS</code></td><td style="text-align:left"><code>40/40</code></td><td style="text-align:left"><code>364.01</code> (<code>0.728</code>)</td><td style="text-align:left"><code>1202.9 / 2435.5</code></td><td style="text-align:left"><code>12.70 / 27.93</code></td><td style="text-align:left"><code>7.761 / 15.773</code></td><td style="text-align:left"><code>3.95</code></td></tr></tbody></table></div>
+<ul><li><strong>Queuing Knee</strong>: Up to <strong><code>0.45 RPS/GPU</code></strong> (<code>~3.6 RPS</code> on an 8-GPU node), queues stay shallow (<code>TTFT p90 ~1.44s</code>, <code>E2E p90 ~6.8–7.1s</code>). Beyond <code>0.65 RPS/GPU</code>, queue buildup pushes TPOT/E2E p90 steeply upward toward saturation (~<code>1.04 req/s</code> max closed-loop service rate).</li></ul>
+<hr/>
+<h2 id="6-stage-4-8x-rtx-pro-6000-multi-gpu-scaling-2s-e2e-feasibility">6. Stage 4: <code>8x</code> RTX PRO 6000 Multi-GPU Scaling &amp; <code>&lt; 2s</code> E2E Feasibility</h2>
+<p>We benchmarked <code>TP=2</code> (CUDA GPUs <code>0,1</code> over a single <code>PIX</code> bridge), <code>TP=4</code> (CUDA GPUs <code>0,1,2,3</code> on Socket 0 <code>PIX+NODE</code>), <code>TP=4 + MTP-5</code> (<code>c=1</code> latency floor check), and <code>TP=8</code> (all 8 GPUs across <code>SYS</code>), comparing single-replica performance and total 8-GPU node capacity.</p>
+<h3 id="per-replica-8-gpu-node-scaling-table-nvidia-qwen3-8-27b-nvfp4-bf16-ssm-bt-4096-default-unset-nccl-p2p-level">Per-Replica &amp; 8-GPU Node Scaling Table (<code>nvidia/Qwen3.8-27B-NVFP4</code>, <code>bf16</code> SSM, <code>bt=4096</code>, Default Unset <code>NCCL_P2P_LEVEL</code>)</h3>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Concurrency / Replica</th><th style="text-align:left"><code>TP=1</code> (<code>DP=8 × TP=1</code>) <code>out/s</code> (E2E p90)</th><th style="text-align:left"><code>TP=2 PIX</code> (<code>DP=4 × TP=2</code>) <code>out/s</code> (E2E p90)</th><th style="text-align:left"><code>TP=4</code> (<code>DP=2 × TP=4</code>) <code>out/s</code> (E2E p90)</th><th style="text-align:left"><code>TP=8</code> (<code>1 × TP=8</code>) <code>out/s</code> (E2E p90)</th><th style="text-align:left"><strong><code>DP=8</code> Node Total</strong> (<code>8× TP=1</code>)</th><th style="text-align:left"><strong><code>DP=4 × TP=2</code> Node Total</strong></th><th style="text-align:left"><strong><code>DP=2 × TP=4</code> Node Total</strong></th></tr></thead><tbody><tr><td style="text-align:left"><strong><code>c=1</code></strong></td><td style="text-align:left"><code>149.35</code> (<code>3.856s</code>)</td><td style="text-align:left"><code>200.17</code> (<code>2.720s</code>)</td><td style="text-align:left"><strong><code>203.44</code> (<code>2.669s</code>)</strong></td><td style="text-align:left"><code>173.49</code> (<code>3.042s</code>)</td><td style="text-align:left"><strong><code>1,194.8</code></strong></td><td style="text-align:left"><code>800.7</code></td><td style="text-align:left"><code>406.9</code></td></tr><tr><td style="text-align:left"><strong><code>c=2</code></strong></td><td style="text-align:left"><code>249.91</code> (<code>4.174s</code>)</td><td style="text-align:left"><strong><code>293.88</code></strong> (<code>4.270s</code>)</td><td style="text-align:left"><code>272.50</code> (<code>3.909s</code>)</td><td style="text-align:left"><code>240.14</code> (<code>5.243s</code>)</td><td style="text-align:left"><strong><code>1,999.3</code></strong></td><td style="text-align:left"><code>1,175.5</code></td><td style="text-align:left"><code>545.0</code></td></tr><tr><td style="text-align:left"><strong><code>c=4</code></strong></td><td style="text-align:left"><code>341.97</code> (<code>7.262s</code>)</td><td style="text-align:left"><strong><code>389.71</code> (<code>6.620s</code>)</strong></td><td style="text-align:left"><code>342.92</code> (<code>7.314s</code>)</td><td style="text-align:left"><code>291.50</code> (<code>8.278s</code>)</td><td style="text-align:left"><strong><code>2,735.8</code></strong></td><td style="text-align:left"><code>1,558.8</code></td><td style="text-align:left"><code>685.8</code></td></tr><tr><td style="text-align:left"><strong><code>c=8</code></strong></td><td style="text-align:left"><code>439.72</code> (<code>12.297s</code>)</td><td style="text-align:left"><strong><code>478.63</code> (<code>11.683s</code>)</strong></td><td style="text-align:left"><code>389.46</code> (<code>15.538s</code>)</td><td style="text-align:left"><code>330.70</code> (<code>16.941s</code>)</td><td style="text-align:left"><strong><code>3,517.8</code></strong></td><td style="text-align:left"><code>1,914.5</code></td><td style="text-align:left"><code>778.9</code></td></tr><tr><td style="text-align:left"><strong><code>c=16</code></strong></td><td style="text-align:left"><code>502.40</code> (<code>24.050s</code>)</td><td style="text-align:left"><strong><code>520.57</code> (<code>22.442s</code>)</strong></td><td style="text-align:left"><code>409.12</code> (<code>31.421s</code>)</td><td style="text-align:left"><code>374.58</code> (<code>33.416s</code>)</td><td style="text-align:left"><strong><code>4,019.2</code></strong></td><td style="text-align:left"><code>2,082.3</code></td><td style="text-align:left"><code>818.2</code></td></tr><tr><td style="text-align:left"><strong><code>c=32</code></strong></td><td style="text-align:left">— <em>(c=24: <code>521.55</code>)</em></td><td style="text-align:left">—</td><td style="text-align:left"><code>430.91</code> (<code>44.530s</code>)</td><td style="text-align:left"><code>382.27</code> (<code>49.882s</code>)</td><td style="text-align:left"><em>(<code>DP=8 @ c=24</code>: <code>4,172.4</code>)</em></td><td style="text-align:left">—</td><td style="text-align:left"><code>861.8</code></td></tr></tbody></table></div>
+<div class="callout callout-warning"><div class="callout-title">WARNING</div><p><strong>Why <code>TP=4</code> &amp; <code>TP=8</code> Underperform <code>TP=2</code> (<code>PIX</code>) and Even <code>TP=1</code> Out-of-the-Box</strong>:</p>
+<ol><li><strong>All-Reduce Transport Downgrade</strong>: Server logs confirm that <strong><code>TP=2</code> (<code>PIX</code>) uses <code>[&#x27;CUSTOM&#x27;, &#x27;PYNCCL&#x27;]</code> P2P shared-memory custom all-reduce</strong>, whereas on <strong><code>TP=4</code> and <code>TP=8</code></strong> vLLM prints <code>WARNING: Custom allreduce is disabled because it&#x27;s not supported on more than two PCIe-only GPUs</code> and falls back to <strong><code>[&#x27;PYNCCL&#x27;]</code> over PCIe <code>NODE</code>/<code>SYS</code></strong> — which furthermore drops to CPU <code>SHM</code> staging unless <code>NCCL_P2P_LEVEL=SYS</code> is exported (see <strong>Stage 4c</strong> below).</li><li><strong>Latency Impact</strong>: Two all-reduces per transformer layer multiplied across MTP draft/verify passes turn PCIe latency into the dominant bottleneck. Consequently, without <code>NCCL_P2P_LEVEL=SYS</code>, <strong><code>1x TP=1</code> (<code>439.72</code> at <code>c=8</code>, <code>502.40</code> at <code>c=16</code>) beats a single <code>TP=4</code> (<code>389.46</code> / <code>409.12</code>) AND <code>TP=8</code> (<code>330.70</code> / <code>374.58</code>) replica outright</strong>! <em>(See <strong>Stage 4c</strong> for the <code>+21.9%</code> to <code>+57.7%</code> rescue when setting <code>NCCL_P2P_LEVEL=SYS</code>, where <code>DP=8 × TP=1</code> still wins 8-GPU node throughput by <code>3.66x–7.17x</code>.)</em></li></ol></div>
+<h3 id="stage-4b-native-checkpoint-qwen-qwen3-8-27b-bf16-fp8-extension-1-2-4-8-chips">Stage 4b: Native Checkpoint (<code>Qwen/Qwen3.8-27B</code> BF16) &amp; <code>FP8</code> Extension (<code>1 / 2 / 4 / 8</code> Chips)</h3>
+<p>To quantify the full impact of native vs quantized checkpoints across multi-GPU topologies, we repeated the <code>TP=1, 2, 4, 8</code> sweep on:</p>
+<ol><li><strong><code>bf16_naive</code></strong> (<code>Qwen/Qwen3.8-27B</code>, no MTP, BF16 KV cache, <code>float32</code> SSM state)</li><li><strong><code>bf16_mtp4_tuned</code></strong> (<code>Qwen/Qwen3.8-27B</code> + <code>MTP-4</code> + <code>FP8</code> KV + <code>bfloat16</code> SSM + <code>bt=4096</code>)</li><li><strong><code>fp8_mtp4_tuned</code></strong> (<code>Qwen/Qwen3.8-27B-FP8</code> + same tuned <code>MTP-4</code> stack)</li></ol>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Precision &amp; Stack</th><th style="text-align:left"><code>Weights/GPU</code> (<code>TP=1/2/4/8</code>)</th><th style="text-align:left"><code>16k</code> KV Slots (<code>TP=1/2/4/8</code>)</th><th style="text-align:left"><code>TP=1</code> <code>out/s</code> (<code>c=1</code> / <code>c=4</code> / <code>c=8</code> / <code>c=16</code>)</th><th style="text-align:left"><code>TP=2 PIX</code> <code>out/s</code> (<code>c=1</code> / <code>c=4</code> / <code>c=8</code> / <code>c=16</code>)</th><th style="text-align:left"><code>TP=4</code> <code>out/s</code> (<code>c=1</code> / <code>c=4</code> / <code>c=8</code> / <code>c=16</code>)</th><th style="text-align:left"><code>TP=8</code> <code>out/s</code> (<code>c=1</code> / <code>c=4</code> / <code>c=8</code> / <code>c=16</code>)</th><th style="text-align:left"><strong><code>DP=8</code> vs <code>TP=8</code> (<code>c=16</code>)</strong></th></tr></thead><tbody><tr><td style="text-align:left"><strong><code>BF16 Naive</code></strong></td><td style="text-align:left"><code>50.1 / 25.2 / 12.8 / 6.5 GiB</code></td><td style="text-align:left"><code>28.2x / 97.2x / 232x / 271x</code></td><td style="text-align:left"><code>24.49 / 77.65 / 121.38 / —</code></td><td style="text-align:left"><code>42.57 / 126.70 / 190.59 / —</code></td><td style="text-align:left"><code>61.29 / 158.75 / 228.03 / —</code></td><td style="text-align:left"><code>67.40 / 169.16 / 239.96 / 291.24</code></td><td style="text-align:left">— <em>(TP=1 c=8→DP8: <code>971</code> vs <code>240</code>)</em></td></tr><tr><td style="text-align:left"><strong><code>BF16 + MTP-4</code></strong></td><td style="text-align:left"><code>50.9 / 25.6 / 13.0 / 6.6 GiB</code></td><td style="text-align:left"><code>30.3x / 110.6x / 264x / 378x</code></td><td style="text-align:left"><code>69.47 / 151.64 / 209.97 / 233.24</code></td><td style="text-align:left"><code>107.76 / 233.42 / 290.62 / 339.74</code></td><td style="text-align:left"><code>142.53 / 263.29 / 309.05 / 338.86</code></td><td style="text-align:left"><code>149.29 / 263.75 / 297.74 / 344.15</code></td><td style="text-align:left"><strong><code>1,865.9</code> vs <code>344.15</code> (<code>5.42x</code>)</strong></td></tr><tr><td style="text-align:left"><strong><code>FP8 + MTP-4</code></strong></td><td style="text-align:left"><code>28.0 / 14.2 / 7.2 / 3.6 GiB</code></td><td style="text-align:left"><code>53.2x / 133.4x / 287x / 394x</code></td><td style="text-align:left"><code>99.94 / 231.92 / 310.35 / 366.26</code></td><td style="text-align:left"><strong><code>148.39 / 314.21 / 388.66 / 434.88</code></strong></td><td style="text-align:left"><code>169.12 / 299.08 / 354.40 / 383.70</code></td><td style="text-align:left"><code>162.83 / 282.81 / 318.48 / 362.63</code></td><td style="text-align:left"><strong><code>2,930.1</code> vs <code>362.63</code> (<code>8.08x</code>)</strong></td></tr><tr><td style="text-align:left"><strong><code>NVFP4 + MTP-4</code></strong></td><td style="text-align:left"><code>19.8 / 10.0 / 5.0 / 2.6 GiB</code></td><td style="text-align:left"><code>61.3x / 140.3x / 295x / 399x</code></td><td style="text-align:left"><code>149.35 / 341.97 / 439.72 / 502.40</code></td><td style="text-align:left"><strong><code>200.17 / 389.71 / 478.63 / 520.57</code></strong></td><td style="text-align:left"><code>203.44 / 342.92 / 389.46 / 409.12</code></td><td style="text-align:left"><code>173.49 / 291.50 / 330.70 / 374.58</code></td><td style="text-align:left"><strong><code>4,019.2</code> vs <code>374.58</code> (<code>10.73x</code>)</strong></td></tr></tbody></table></div>
+<p><em>Additional <code>c=2</code> and <code>c=32</code> points verified</em>: <code>bf16_mtp4_tuned</code>: <code>TP=1 c=2</code>: <code>108.91</code> (<code>10.07s</code> p90); <code>TP=2 c=2</code>: <code>171.47</code> (<code>6.06s</code>); <code>TP=4 c=2/c=32</code>: <code>205.74</code> (<code>5.24s</code>) / <code>357.38</code> (<code>54.07s</code>); <code>TP=8 c=2/c=32</code>: <code>218.63</code> (<code>5.54s</code>) / <code>351.35</code> (<code>54.36s</code>). <code>fp8_mtp4_tuned</code>: <code>TP=2 c=2</code>: <code>235.96</code> (<code>4.68s</code>); <code>TP=4 c=2/c=32</code>: <code>241.70</code> (<code>4.54s</code>) / <code>407.39</code> (<code>47.55s</code>); <code>TP=8 c=2/c=32</code>: <code>235.07</code> (<code>4.73s</code>) / <code>375.11</code> (<code>51.46s</code>).</p>
+<h3 id="key-multi-precision-scaling-discoveries">Key Multi-Precision Scaling Discoveries</h3>
+<ol><li><strong>Weight-Sharding vs Quantization Crossover</strong>: On unquantized <code>BF16 Naive</code> (<code>50.13 GiB</code> weights saturate 1 GPU memory bandwidth), sharding across GPUs yields big single-stream gains (<code>24.49 → 42.57 (1.74x) → 61.29 (2.50x) → 67.40 (2.75x)</code> at <code>c=1</code>). However, shrinking weights via <code>NVFP4</code> (<code>19.75 GiB</code>) + <code>MTP-4</code> allows <strong>1 single GPU (<code>149.35–502.40 tok/s</code>) to outperform ALL 8 GPUs running Naive BF16 <code>TP=8</code> (<code>67.40–291.24 tok/s</code>) and match/beat 8 GPUs running Tuned BF16 + MTP-4 <code>TP=8</code> (<code>149.29–344.15 tok/s</code>)</strong>.</li><li><strong>Native BF16 <code>MTP-4</code> Hits a PCIe Wall Beyond <code>TP=2</code></strong>: At <code>c=16</code>, Native <code>BF16 + MTP-4</code> plateaus completely after <code>TP=2</code> (<code>339.74</code> at <code>TP=2 PIX</code> vs <code>338.86</code> at <code>TP=4</code> vs <code>344.15</code> at <code>TP=8</code>). Using <code>DP=8 × TP=1</code> on Native <code>BF16 + MTP-4</code> delivers <strong><code>1,865.9 out_tok/s</code></strong> (<code>5.42x</code> over <code>TP=8</code>).</li><li><strong><code>TP=8</code> KV Head Replication Proof</strong>: <code>Qwen3.8-27B</code> has only <code>4</code> KV heads (<code>num_key_value_heads: 4</code>, <code>head_dim=256</code>). At <code>TP=8</code>, FlashInfer JIT compiles kernels with <code>head_group_ratio=3</code> (down from <code>6</code> on <code>TP=1</code>), confirming <strong><code>2x</code> KV head replication</strong> across the 8 ranks — limiting <code>TP=8</code> KV capacity to <code>378x–399x</code> vs <code>DP=8</code> (<code>425x</code> on <code>FP8</code>, <code>490x</code> on <code>NVFP4</code>).</li></ol>
+<h3 id="stage-4c-controlled-nccl-p2p-level-sys-validation-tp-4-tp-8">Stage 4c: Controlled <code>NCCL_P2P_LEVEL=SYS</code> Validation (<code>TP=4</code> &amp; <code>TP=8</code>)</h3>
+<h4 id="root-cause-in-nccl-gcp-g4-documentation">Root Cause in NCCL &amp; GCP G4 Documentation</h4>
+<p>Inspection of NCCL graph path selection (<code>src/graph/paths.cc</code> and <code>src/graph/graph.h</code>) confirms that <code>p2pLevel</code> defaults to <code>PATH_PXB (5)</code> and only auto-promotes to <code>PATH_SYS (9)</code> on x86 AMD systems when <code>system-&gt;nodes[DEV].count &lt;= 2</code>. Consequently:</p>
+<ul><li><strong><code>TP=2</code> (<code>PIX</code>)</strong> automatically gets PCIe P2P (<code>[&#x27;CUSTOM&#x27;, &#x27;PYNCCL&#x27;]</code>), whereas</li><li><strong><code>TP=4</code> (<code>PHB</code> / <code>NODE</code>)</strong> and <strong><code>TP=8</code> (<code>SYS</code>)</strong> fall back to host <code>SHM</code> staging (<code>isAllDirectP2p 0 directMode 0</code>) whenever <code>NCCL_P2P_LEVEL</code> is left unset. GCP&#x27;s <code>g4-standard-384</code> documentation explicitly recommends exporting <code>NCCL_P2P_LEVEL=SYS</code>.</li></ul>
+<h4 id="1-pytorch-torch-distributed-all-reduce-microbenchmark-nccl-p2p-microbench-json">1. PyTorch <code>torch.distributed</code> <code>all_reduce</code> Microbenchmark (<code>nccl_p2p_microbench.json</code>)</h4>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">World Size</th><th style="text-align:left">Tensor Size (Decode <code>5x5120</code> vs Prefill <code>4096x5120</code> BF16)</th><th style="text-align:left">Default UNSET <code>p50 / p90</code> (<code>busbw</code>)</th><th style="text-align:left"><code>NCCL_P2P_LEVEL=SYS</code> <code>p50 / p90</code> (<code>busbw</code>)</th><th style="text-align:left">Speedup / BusBW Gain</th></tr></thead><tbody><tr><td style="text-align:left"><strong><code>TP=4</code></strong> (<code>0..3</code>)</td><td style="text-align:left"><code>50 KiB</code> (per-step decode AR)</td><td style="text-align:left"><code>46.59 / 52.90 µs</code> (<code>1.65 GB/s</code>)</td><td style="text-align:left"><strong><code>23.42 / 26.18 µs</code></strong> (<code>3.28 GB/s</code>)</td><td style="text-align:left"><strong><code>1.99x</code> faster (<code>-49.7%</code>)</strong></td></tr><tr><td style="text-align:left"><strong><code>TP=4</code></strong> (<code>0..3</code>)</td><td style="text-align:left"><code>40 MiB</code> (prefill chunk AR)</td><td style="text-align:left"><code>2,402.85 / 2,419.04 µs</code> (<code>26.18 GB/s</code>)</td><td style="text-align:left"><strong><code>1,640.61 / 1,643.74 µs</code></strong> (<code>38.35 GB/s</code>)</td><td style="text-align:left"><strong><code>+46.5%</code> busbw (<code>-31.7%</code>)</strong></td></tr><tr><td style="text-align:left"><strong><code>TP=8</code></strong> (<code>0..7</code>)</td><td style="text-align:left"><code>50 KiB</code> (per-step decode AR)</td><td style="text-align:left"><code>68.26 / 72.00 µs</code> (<code>1.31 GB/s</code>)</td><td style="text-align:left"><strong><code>31.87 / 36.29 µs</code></strong> (<code>2.81 GB/s</code>)</td><td style="text-align:left"><strong><code>2.14x</code> faster (<code>-53.3%</code>)</strong></td></tr><tr><td style="text-align:left"><strong><code>TP=8</code></strong> (<code>0..7</code>)</td><td style="text-align:left"><code>40 MiB</code> (prefill chunk AR)</td><td style="text-align:left"><code>3,025.60 / 3,045.12 µs</code> (<code>24.26 GB/s</code>)</td><td style="text-align:left"><strong><code>1,848.42 / 1,856.29 µs</code></strong> (<code>39.71 GB/s</code>)</td><td style="text-align:left"><strong><code>+63.7%</code> busbw (<code>-38.9%</code>)</strong></td></tr></tbody></table></div>
+<h4 id="2-end-to-end-vllm-a-b-default-unset-vs-nccl-p2p-level-sys-10k-500-fail-0">2. End-to-End vLLM A/B (<code>Default UNSET</code> vs <code>NCCL_P2P_LEVEL=SYS</code>, <code>10k / 500</code>, <code>fail=0</code>)</h4>
+<p><em>(Note: vLLM <code>0.34.0</code> still disables <code>FlashInfer All Reduce</code> / Custom P2P for <code>world_size &gt; 2</code>, but <code>NCCL_P2P_LEVEL=SYS</code> unlocks PCIe P2P DMA inside <code>PYNCCL</code>.)</em></p>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Topology &amp; Precision</th><th style="text-align:left">Concurrency</th><th style="text-align:left">Default <code>out_tok/s</code> (<code>E2E p50 / p90</code>)</th><th style="text-align:left"><code>P2P=SYS</code> <code>out_tok/s</code> (<code>TTFT p50</code> / <code>E2E p50 / p90</code>)</th><th style="text-align:left"><code>out_tok/s</code> / <code>E2E p90</code> Delta</th></tr></thead><tbody><tr><td style="text-align:left"><strong><code>TP=4</code> NVFP4 + <code>MTP-4</code></strong></td><td style="text-align:left"><code>c=1</code></td><td style="text-align:left"><code>203.44</code> (<code>2.411s / 2.669s</code>)</td><td style="text-align:left"><strong><code>248.00</code></strong> (<code>749.4 ms</code> / <strong><code>1.974s / 2.203s</code></strong>)</td><td style="text-align:left"><strong><code>+21.9%</code></strong> / <strong><code>-17.5%</code></strong></td></tr><tr><td style="text-align:left"><strong><code>TP=4</code> NVFP4 + <code>MTP-4</code></strong></td><td style="text-align:left"><code>c=4</code> / <code>c=16</code></td><td style="text-align:left"><code>342.92</code> (<code>7.31s</code>) / <code>409.12</code> (<code>31.42s</code>)</td><td style="text-align:left"><strong><code>454.80</code></strong> (<code>5.498s</code>) / <strong><code>549.59</code></strong> (<code>23.442s</code>)</td><td style="text-align:left"><strong><code>+32.6%</code> / <code>+34.3%</code></strong></td></tr><tr><td style="text-align:left"><strong><code>TP=8</code> NVFP4 + <code>MTP-4</code></strong></td><td style="text-align:left"><code>c=1</code></td><td style="text-align:left"><code>173.49</code> (<code>2.833s / 3.042s</code>)</td><td style="text-align:left"><strong><code>246.78</code></strong> (<code>753.8 ms</code> / <strong><code>2.036s / 2.065s</code></strong>)</td><td style="text-align:left"><strong><code>+42.2%</code></strong> / <strong><code>-32.1%</code></strong></td></tr><tr><td style="text-align:left"><strong><code>TP=8</code> NVFP4 + <code>MTP-4</code></strong></td><td style="text-align:left"><code>c=4</code> / <code>c=8</code></td><td style="text-align:left"><code>291.50</code> (<code>8.28s</code>) / <code>330.70</code> (<code>16.94s</code>)</td><td style="text-align:left"><strong><code>450.53</code></strong> (<code>5.492s</code>) / <strong><code>521.36</code></strong> (<code>10.868s</code>)</td><td style="text-align:left"><strong><code>+54.6%</code> / <code>+57.7%</code></strong></td></tr><tr><td style="text-align:left"><strong><code>TP=8</code> NVFP4 + <code>MTP-4</code></strong></td><td style="text-align:left"><code>c=16</code></td><td style="text-align:left"><code>374.58</code> (<code>20.383s / 33.416s</code>)</td><td style="text-align:left"><strong><code>560.67</code></strong> (<code>3054.7 ms</code> / <code>13.929s / 19.736s</code>)</td><td style="text-align:left"><strong><code>+49.7%</code></strong> / <strong><code>-40.9%</code></strong></td></tr><tr><td style="text-align:left"><strong><code>TP=4</code> NVFP4 + <code>MTP-5</code></strong></td><td style="text-align:left"><code>c=1</code> / <code>c=2</code></td><td style="text-align:left"><code>207.34</code> (<code>2.320s / 2.635s</code>) / —</td><td style="text-align:left"><strong><code>235.53</code></strong> (<code>2.014s / 2.395s</code>) / <strong><code>336.63</code></strong> (<code>3.666s</code>)</td><td style="text-align:left"><strong><code>+13.6%</code></strong> / <strong><code>-9.1%</code></strong></td></tr><tr><td style="text-align:left"><strong><code>TP=8</code> NVFP4 + <code>MTP-5</code></strong></td><td style="text-align:left"><code>c=1</code> / <code>c=2</code></td><td style="text-align:left">— / —</td><td style="text-align:left"><strong><code>253.13</code></strong> (<code>753.8 ms</code> / <strong><code>1.937s / 2.127s</code></strong>) / <strong><code>348.56</code></strong> (<code>3.436s</code>)</td><td style="text-align:left"><strong><code>&lt; 2.0s</code> p50 achieved (<code>4.62 tok/step</code>)</strong></td></tr><tr><td style="text-align:left"><strong><code>TP=8</code> BF16 + <code>MTP-4</code></strong></td><td style="text-align:left"><code>c=1</code> / <code>c=4</code></td><td style="text-align:left"><code>149.29</code> (<code>3.73s</code>) / <code>263.75</code> (<code>9.22s</code>)</td><td style="text-align:left"><strong><code>197.26</code></strong> (<code>852.7 ms</code> / <code>2.834s</code>) / <strong><code>380.54</code></strong> (<code>6.378s</code>)</td><td style="text-align:left"><strong><code>+32.1%</code> / <code>+44.3%</code></strong></td></tr><tr><td style="text-align:left"><strong><code>TP=8</code> BF16 + <code>MTP-4</code></strong></td><td style="text-align:left"><code>c=8</code> / <code>c=16</code></td><td style="text-align:left"><code>297.74</code> (<code>17.07s</code>) / <code>344.15</code> (<code>35.86s</code>)</td><td style="text-align:left"><strong><code>444.71</code></strong> (<code>11.482s</code>) / <strong><code>491.64</code></strong> (<code>25.050s</code>)</td><td style="text-align:left"><strong><code>+49.4%</code> / <code>+42.9%</code></strong></td></tr></tbody></table></div>
+<ul><li><strong>Two Crucial Takeaways</strong>:</li><li><strong><code>NCCL_P2P_LEVEL=SYS</code> Rescues Per-Replica Latency (<code>TP=4</code>/<code>TP=8</code> Now Leapfrog <code>TP=2 PIX</code>)</strong>: Prefill <code>TTFT</code> on <code>TP=4</code>/<code>TP=8</code> drops from <code>1,000–1,127 ms</code> down to <strong><code>749–755 ms</code></strong> (<code>-25%</code> to <code>-33%</code>, matching <code>TP=1</code>/<code>TP=2</code>), and peak <code>c=16</code> single-replica throughput reaches <strong><code>560.67 out_tok/s</code></strong> on <code>TP=8</code> (now beating <code>TP=2 PIX</code>&#x27;s <code>520.57</code> by <code>+7.7%</code>).</li><li><strong>Yet <code>DP=8 × TP=1</code> Still Dominates Node Throughput</strong>: Even with <code>NCCL_P2P_LEVEL=SYS</code>, <code>DP=8 × TP=1</code> (<strong><code>4,019.2 out_tok/s</code></strong>) delivers <strong><code>3.66x</code></strong> the 8-GPU node throughput of <code>DP=2 × TP=4</code> (<code>1,099.2 out_tok/s</code> at <code>c=16/rep</code>) and <strong><code>7.17x</code></strong> that of <code>TP=8</code> (<code>560.67 out_tok/s</code>). Likewise, <strong><code>1x NVFP4</code> (<code>502.40 tok/s</code>) still beats <code>8x Tuned BF16 TP=8</code> (<code>491.64 tok/s</code>) at <code>c=16</code></strong>.</li></ul>
+<h3 id="stage-4d-deep-kernel-compiler-flashinfer-pcie-ipc-ablations-breaking-2-0s-p90-uncached">Stage 4d: Deep Kernel, Compiler &amp; <code>FLASHINFER_PCIE_IPC</code> Ablations (Breaking <code>&lt; 2.0s</code> p90 Uncached)</h3>
+<p>Auditing our <code>vLLM 0.34.0</code> boot logs surfaced four untapped flags (<code>--linear-backend b12x</code>, <code>torch.compile mode=3</code> + fusion passes vs Breakable CUDA Graphs, <code>BF16</code> KV cache / <code>FLASH_ATTN</code>, and <code>VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=1</code>). We ran a 13-cell controlled sweep (<code>42</code> timed JSON runs, <code>810</code> requests, <code>0</code> failures):</p>
+<h4 id="1-1x-gpu-kernel-compiler-kv-dtype-ablations-cuda-visible-devices-0-nvfp4-mtp-4">1. <code>1x</code> GPU Kernel, Compiler &amp; KV Dtype Ablations (<code>CUDA_VISIBLE_DEVICES=0</code>, <code>NVFP4 + MTP-4</code>)</h4>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Cell</th><th style="text-align:left">Change vs Champion (<code>final_vllm_nvfp4_mtp4_tuned</code>)</th><th style="text-align:left"><code>16k</code> KV Slots</th><th style="text-align:left"><code>c=1</code> <code>out/s</code> (<code>E2E p90</code>)</th><th style="text-align:left"><code>c=4</code> <code>out/s</code> (<code>E2E p90</code>)</th><th style="text-align:left"><code>c=8</code> <code>out/s</code> (<code>E2E p90</code>)</th><th style="text-align:left"><code>c=16</code> <code>out/s</code> (<code>E2E p90</code>)</th><th style="text-align:left">Verdict</th></tr></thead><tbody><tr><td style="text-align:left"><strong><code>Champion</code></strong></td><td style="text-align:left"><code>FlashInferCutlassNvFp4</code> + Breakable CG + <code>FP8</code> KV</td><td style="text-align:left"><code>61.26x</code></td><td style="text-align:left"><code>149.35</code> (<code>3.86s</code>)</td><td style="text-align:left"><strong><code>341.97</code></strong> (<code>7.26s</code>)</td><td style="text-align:left"><code>439.72</code> (<strong><code>12.30s</code></strong>)</td><td style="text-align:left"><code>502.40</code> (<code>24.05s</code>)</td><td style="text-align:left">Baseline</td></tr><tr><td style="text-align:left"><strong><code>abl4</code></strong></td><td style="text-align:left"><strong><code>VLLM_USE_BREAKABLE_CUDAGRAPH=0</code> + <code>mode=3</code> + <code>fuse_qk_norm_rope_kvcache</code></strong></td><td style="text-align:left"><strong><code>62.00x</code></strong></td><td style="text-align:left"><strong><code>150.22</code> (<code>3.75s</code>)</strong></td><td style="text-align:left"><code>339.31</code> (<strong><code>7.02s</code></strong>)</td><td style="text-align:left"><strong><code>446.18</code></strong> (<code>12.69s</code>)</td><td style="text-align:left"><strong><code>513.36</code> (<code>22.35s</code>)</strong></td><td style="text-align:left"><strong>WIN (<code>+2.2%</code> @ <code>c=16</code> → <code>4,106.9</code> on <code>DP=8</code>)</strong></td></tr><tr><td style="text-align:left"><strong><code>abl1</code></strong></td><td style="text-align:left"><code>--linear-backend b12x</code> (<code>B12xNvFp4</code> + <code>B12xTensorFP8</code>)</td><td style="text-align:left"><code>59.00x</code></td><td style="text-align:left"><code>142.28</code> (<code>3.87s</code>)</td><td style="text-align:left"><code>317.87</code> (<code>7.12s</code>)</td><td style="text-align:left"><code>404.39</code> (<code>12.95s</code>)</td><td style="text-align:left"><code>463.16</code> (<code>26.80s</code>)</td><td style="text-align:left"><strong>NO-WIN (<code>-5%</code> to <code>-8%</code>; TTFT <code>816ms</code> vs <code>718ms</code>)</strong></td></tr><tr><td style="text-align:left"><strong><code>abl5</code>/<code>6</code></strong></td><td style="text-align:left"><code>--kv-cache-dtype auto</code> (<code>BF16</code> KV + <code>FLASH_ATTN</code>)</td><td style="text-align:left"><code>40.81x</code></td><td style="text-align:left"><code>121.45</code> (<code>4.46s</code>)</td><td style="text-align:left"><code>303.55</code> (<code>8.22s</code>)</td><td style="text-align:left"><code>392.90</code> (<code>12.80s</code>)</td><td style="text-align:left"><code>454.99</code> (<code>25.05s</code>)</td><td style="text-align:left"><strong>NO-WIN (<code>-10%</code> to <code>-19%</code>, <code>-33%</code> KV slots)</strong></td></tr></tbody></table></div>
+<h4 id="2-multi-gpu-vllm-allreduce-use-flashinfer-pcie-ipc-1-nccl-p2p-level-sys-gpu-memory-utilization-0-85">2. Multi-GPU <code>VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=1</code> + <code>NCCL_P2P_LEVEL=SYS</code> (<code>--gpu-memory-utilization 0.85</code>)</h4>
+<p><code>flashinfer_pcie_ipc_all_reduce.py</code> activates FlashInfer&#x27;s auto-tuned CUDA-IPC AllReduce for <code>TP=2/4/8</code> decode steps (<code>&lt;= 512</code> tokens) while retaining <code>NCCL_P2P_LEVEL=SYS</code> (<code>38–40 GB/s</code>) for <code>4096</code>-token prefill chunks:</p>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Config</th><th style="text-align:left">Load</th><th style="text-align:left">Default <code>SHM</code> (<code>out/s</code> / <code>E2E p90</code>)</th><th style="text-align:left"><code>P2P=SYS</code> Only (<code>out/s</code> / <code>E2E p90</code>)</th><th style="text-align:left"><strong><code>PCIE_IPC + P2P=SYS</code></strong> (<code>out/s</code> / <code>E2E p50 / p90</code>)</th><th style="text-align:left">Gain vs <code>SHM</code> / <code>P2P=SYS</code></th></tr></thead><tbody><tr><td style="text-align:left"><strong><code>TP=2 PIX</code> NVFP4 <code>MTP-4</code></strong></td><td style="text-align:left"><code>c=1</code> / <code>c=4</code> / <code>c=16</code></td><td style="text-align:left"><code>200.17</code> (<code>2.72s</code>) / <code>389.71</code> (<code>6.62s</code>) / <code>520.57</code></td><td style="text-align:left"><em>(same <code>CUSTOM</code>)</em></td><td style="text-align:left"><strong><code>207.09</code></strong> (<code>2.36 / 2.62s</code>) / <strong><code>403.88</code></strong> (<code>6.18s</code>) / <strong><code>522.73</code></strong></td><td style="text-align:left"><strong><code>+3.5%</code> / <code>+3.6%</code> vs <code>CUSTOM</code></strong></td></tr><tr><td style="text-align:left"><strong><code>TP=4</code> NVFP4 <code>MTP-4</code></strong></td><td style="text-align:left"><code>c=1</code> / <code>c=4</code> / <code>c=16</code></td><td style="text-align:left"><code>203.44</code> (<code>2.67s</code>) / <code>342.92</code> (<code>7.31s</code>) / <code>409.12</code></td><td style="text-align:left"><code>248.00</code> (<code>2.20s</code>) / <code>454.80</code> / <code>549.59</code></td><td style="text-align:left"><strong><code>258.63</code></strong> (<code>1.88 / 2.13s</code>) / <strong><code>467.76</code></strong> (<code>5.51s</code>) / <strong><code>568.58</code></strong></td><td style="text-align:left"><strong><code>+27.1%</code>–<code>+39.0%</code> vs <code>SHM</code></strong></td></tr><tr><td style="text-align:left"><strong><code>TP=4</code> NVFP4 <code>MTP-5</code></strong></td><td style="text-align:left"><code>c=1</code> / <code>c=2</code></td><td style="text-align:left"><code>207.34</code> (<code>2.64s</code>) / —</td><td style="text-align:left"><code>235.53</code> (<code>2.40s</code>) / <code>336.63</code></td><td style="text-align:left"><strong><code>256.54</code></strong> (<code>1.90 / 2.16s</code>) / <strong><code>351.35</code></strong> (<code>3.03s</code>)</td><td style="text-align:left"><strong><code>+23.7%</code> vs <code>SHM</code></strong></td></tr><tr><td style="text-align:left"><strong><code>TP=8</code> NVFP4 <code>MTP-4</code></strong></td><td style="text-align:left"><code>c=1</code></td><td style="text-align:left"><code>173.49</code> (<code>3.04s</code>)</td><td style="text-align:left"><code>246.78</code> (<code>2.07s</code>)</td><td style="text-align:left"><strong><code>287.24</code></strong> (<code>TTFT 755ms</code>, <code>TPOT 1.87ms</code>, <strong><code>1.69 / 1.89s</code></strong>)</td><td style="text-align:left"><strong><code>+65.6%</code> / <code>+16.4%</code></strong></td></tr><tr><td style="text-align:left"><strong><code>TP=8</code> NVFP4 <code>MTP-4</code></strong></td><td style="text-align:left"><code>c=4</code> / <code>c=16</code></td><td style="text-align:left"><code>291.50</code> (<code>8.28s</code>) / <code>374.58</code> (<code>33.42s</code>)</td><td style="text-align:left"><code>450.53</code> (<code>5.49s</code>) / <code>560.67</code> (<code>19.74s</code>)</td><td style="text-align:left"><strong><code>509.35</code></strong> (<code>3.90 / 5.07s</code>) / <strong><code>578.16</code></strong> (<code>13.33 / 22.51s</code>)</td><td style="text-align:left"><strong><code>+74.7%</code> / <code>+54.3%</code> vs <code>SHM</code></strong></td></tr><tr><td style="text-align:left"><strong><code>TP=8</code> NVFP4 <code>MTP-5</code></strong></td><td style="text-align:left"><code>c=1</code> / <code>c=2</code></td><td style="text-align:left">— / —</td><td style="text-align:left"><code>253.13</code> (<code>2.13s</code>) / <code>348.56</code> (<code>3.44s</code>)</td><td style="text-align:left"><strong><code>305.39</code></strong> (<code>TPOT 1.69ms</code>, <strong><code>1.59 / 1.81s</code></strong>) / <strong><code>405.98</code></strong> (<code>3.08s</code>)</td><td style="text-align:left"><strong><code>+20.6%</code> / <code>+16.5%</code> vs <code>P2P=SYS</code></strong></td></tr><tr><td style="text-align:left"><strong><code>TP=8</code> Native BF16 <code>MTP-4</code></strong></td><td style="text-align:left"><code>c=1</code> / <code>c=16</code></td><td style="text-align:left"><code>149.29</code> (<code>3.73s</code>) / <code>344.15</code> (<code>35.86s</code>)</td><td style="text-align:left"><code>197.26</code> (<code>2.83s</code>) / <code>491.64</code> (<code>25.05s</code>)</td><td style="text-align:left"><strong><code>224.17</code></strong> (<code>2.15 / 2.56s</code>) / <strong><code>502.17</code></strong> (<code>15.59 / 24.30s</code>)</td><td style="text-align:left"><strong><code>+50.2%</code> / <code>+45.9%</code> vs <code>SHM</code></strong></td></tr></tbody></table></div>
+<p><em>(Note: On <code>TP=8</code> with <code>PCIE_IPC</code>, forcing <code>mode=3</code> + <code>fuse_allreduce_rms</code> (<code>abl11</code>) disabled <code>norm_quant</code> fusion and ran slightly slower than Breakable CUDA Graphs (<code>294.78</code> vs <code>305.39 tok/s</code>, <code>1.88s</code> vs <code>1.81s</code> p90), so keep default Breakable CUDA Graphs on <code>TP &gt;= 2</code> and apply <code>mode=3</code> on <code>TP=1</code> only.)</em></p>
+<h3 id="stage-4e-wave-5b-stacked-optimizations-qwen-g4-kernels-triton-in-proj-ba-fp8-draft-lm-head-quantization-extensible-kv-cache">Stage 4e: Wave 5b Stacked Optimizations (<code>qwen_g4_kernels</code> Triton <code>in_proj_ba</code>, FP8 <code>draft_lm_head_quantization</code>, &amp; Extensible KV Cache)</h3>
+<p>Cross-checking against the companion <code>jawadaminGOOG/g4-recipes</code> (<code>qwen3.8-27b</code>) optimization repository surfaced three complementary levers that stack cleanly onto our <code>PCIE_IPC + P2P=SYS</code> and <code>mode=3</code> champions:</p>
+<ol><li><strong><code>qwen_g4_kernels</code> (<code>vllm.general_plugins</code>)</strong>: Replaces cuBLAS on <code>QwenGatedDeltaNetAttention.in_proj_ba</code> (<code>48</code> GDN layers per step, unquantized BF16 projection of shape <code>[96/TP, 5120]</code>) with a skinny split-K Triton GEMM whenever <code>1 &lt;= M &lt;= 8</code> tokens (falling back automatically to cuBLAS for <code>M &gt; 8</code>).</li><li><strong>FP8 Draft <code>lm_head</code> (<code>&quot;draft_lm_head_quantization&quot;: &quot;fp8&quot;</code> in <code>--speculative-config</code>)</strong>: On the <code>Qwen3.8-27B-FP8</code> checkpoint (whose target <code>lm_head</code> stays BF16 at <code>2.37 GiB</code>), creates a dedicated FP8 copy (<code>+1.19 GiB</code> VRAM) so all 4 MTP draft steps read half the bytes per token. <em>(On <code>nvidia/Qwen3.8-27B-NVFP4</code>, <code>lm_head</code> is already compact — no change needed.)</em></li><li><strong>vLLM <code>0.34.0</code> Extensible KV Cache (Omitting <code>--gpu-memory-utilization 0.9</code> on <code>TP=1</code>)</strong>: Removing the static <code>0.90</code> ceiling on <code>TP=1</code> stops vLLM from capping allocation at <code>85.47 GiB</code> (<code>7.82 GiB</code> left unused in <code>extensible_kv_cache.py</code>), expanding KV capacity dynamically to <code>1.0</code> headroom (<code>65.94 GiB</code> KV on NVFP4; <code>64.47 GiB</code> KV on FP8). <em>(Keep <code>--gpu-memory-utilization=0.85</code> on <code>TP &gt;= 2</code> with <code>PCIE_IPC</code> for FlashInfer&#x27;s late-allocating IPC workspace.)</em></li></ol>
+<p>We ran a controlled 5-cell verification sweep (<code>14</code> timed JSON runs, <code>264</code> requests, <code>0</code> failures) on the exact same <code>10,000</code> ISL / <code>500</code> OSL uncached dataset (<code>qwen_g4_kernels: in_proj_ba uses the skinny Triton GEMM for 1 to 8 tokens</code> verified in all 5 server logs):</p>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Cell</th><th style="text-align:left">Stack Stacked Onto Stage 4d Champion</th><th style="text-align:left"><code>16k</code> KV Slots (<code>vs Prior</code>)</th><th style="text-align:left">Load</th><th style="text-align:left">Prior Champion <code>out/s</code> (<code>E2E p50 / p90</code>)</th><th style="text-align:left"><strong>Wave 5b Stacked <code>out/s</code> (<code>E2E p50 / p90</code>)</strong></th><th style="text-align:left">Delta (<code>out/s</code> / <code>E2E p90</code>)</th></tr></thead><tbody><tr><td style="text-align:left"><strong><code>w5_tp8_mtp5</code></strong></td><td style="text-align:left"><strong><code>TP=8</code> NVFP4 <code>MTP-5</code> + <code>PCIE_IPC</code> + <code>P2P=SYS</code> + <code>qwen_g4_kernels</code></strong></td><td style="text-align:left"><code>358.22x</code> <em>(same)</em></td><td style="text-align:left"><code>c=1</code></td><td style="text-align:left"><code>305.39</code> (<code>1.591s / 1.808s</code>)</td><td style="text-align:left"><strong><code>330.03</code></strong> (<code>TTFT 749/750ms</code>, <code>TPOT 1.49/1.80ms</code>, <strong><code>1.494s / 1.648s</code></strong>)</td><td style="text-align:left"><strong><code>+8.1%</code></strong> / <strong><code>-8.8%</code> (<code>-160 ms</code>)</strong></td></tr><tr><td style="text-align:left"><strong><code>w5_tp8_mtp5</code></strong></td><td style="text-align:left"><em>(same — <code>M=12 &gt; MAX_M=8</code>, cuBLAS fallback)</em></td><td style="text-align:left"><code>358.22x</code></td><td style="text-align:left"><code>c=2</code></td><td style="text-align:left"><code>405.98</code> (<code>2.377s / 3.085s</code>)</td><td style="text-align:left"><code>400.49</code> (<code>2.489s / 3.277s</code>, <code>4.32</code> vs <code>4.70</code> acc)</td><td style="text-align:left"><code>-1.4%</code> <em>(neutral/fallback)</em></td></tr><tr><td style="text-align:left"><strong><code>w5_tp8_mtp4</code></strong></td><td style="text-align:left"><strong><code>TP=8</code> NVFP4 <code>MTP-4</code> + <code>PCIE_IPC</code> + <code>P2P=SYS</code> + <code>qwen_g4_kernels</code></strong></td><td style="text-align:left"><code>379.08x</code> <em>(same)</em></td><td style="text-align:left"><code>c=1</code></td><td style="text-align:left"><code>287.24</code> (<code>1.688s / 1.895s</code>)</td><td style="text-align:left"><strong><code>310.64</code></strong> (<code>TTFT 748/749ms</code>, <code>TPOT 1.69/2.02ms</code>, <strong><code>1.592s / 1.758s</code></strong>)</td><td style="text-align:left"><strong><code>+8.1%</code></strong> / <strong><code>-7.2%</code> (<code>-137 ms</code>)</strong></td></tr><tr><td style="text-align:left"><strong><code>w5_tp8_mtp4</code></strong></td><td style="text-align:left"><em>(same — <code>M &gt; 8</code>, cuBLAS fallback)</em></td><td style="text-align:left"><code>379.08x</code></td><td style="text-align:left"><code>c=4</code> / <code>c=16</code></td><td style="text-align:left"><code>509.35</code> (<code>5.07s</code>) / <code>578.16</code> (<code>22.51s</code>)</td><td style="text-align:left"><code>503.68</code> (<code>5.10s</code>) / <strong><code>578.90</code></strong> (<code>22.51s</code>)</td><td style="text-align:left"><code>-1.1%</code> / <code>+0.1%</code> <em>(neutral)</em></td></tr><tr><td style="text-align:left"><strong><code>w5_tp2_mtp4</code></strong></td><td style="text-align:left"><strong><code>TP=2 PIX</code> NVFP4 <code>MTP-4</code> + <code>PCIE_IPC</code> + <code>qwen_g4_kernels</code></strong></td><td style="text-align:left"><code>127.91x</code> <em>(same)</em></td><td style="text-align:left"><code>c=1</code> / <code>c=4</code> / <code>c=16</code></td><td style="text-align:left"><code>207.09</code> (<code>2.62s</code>) / <code>403.88</code> / <code>522.73</code> (<code>24.27s</code>)</td><td style="text-align:left"><strong><code>211.21</code></strong> (<code>2.29 / 2.66s</code>) / <code>391.04</code> / <strong><code>525.58</code></strong> (<strong><code>21.11s</code></strong>)</td><td style="text-align:left"><strong><code>+2.0%</code></strong> (<code>c=1</code>), <code>-13.0%</code> p90 (<code>c=16</code>)</td></tr><tr><td style="text-align:left"><strong><code>w5_tp1_nvfp4</code></strong></td><td style="text-align:left"><strong><code>TP=1</code> NVFP4 <code>MTP-4</code> + <code>mode=3</code> + <code>qwen_g4_kernels</code> + Extensible KV</strong></td><td style="text-align:left"><strong><code>66.74x</code> (<code>+7.6%</code>)</strong></td><td style="text-align:left"><code>c=1</code> / <code>c=4</code> / <code>c=8</code> / <code>c=16</code></td><td style="text-align:left"><code>150.22</code> / <code>339.31</code> / <code>446.18</code> / <code>513.36</code></td><td style="text-align:left"><code>149.58</code> / <code>337.94</code> / <code>437.95</code> (<code>11.84s</code> p90) / <code>509.69</code></td><td style="text-align:left">Neutral speed; <strong><code>+7.6%</code> KV (<code>533.9x</code> on <code>DP=8</code>)</strong></td></tr><tr><td style="text-align:left"><strong><code>w5_tp1_fp8</code></strong></td><td style="text-align:left"><strong><code>TP=1</code> FP8 <code>MTP-4</code> + <code>draft_lm_head: fp8</code> + <code>qwen_g4_kernels</code> + Extensible KV</strong></td><td style="text-align:left"><strong><code>59.85x</code> (<code>+12.5%</code>)</strong></td><td style="text-align:left"><code>c=1</code> / <code>c=8</code></td><td style="text-align:left"><code>99.94</code> (<code>5.586s</code>) / <code>310.35</code> (<code>17.805s</code>)</td><td style="text-align:left"><strong><code>112.79</code></strong> (<code>TPOT 6.61/7.82ms</code>, <strong><code>4.324s / 4.910s</code></strong>) / <strong><code>318.79</code></strong> (<code>17.311s</code>)</td><td style="text-align:left"><strong><code>+12.9%</code></strong> / <strong><code>-12.1%</code> (<code>&lt; 5.0s</code> on 1x FP8!)</strong></td></tr></tbody></table></div>
+<ul><li><strong>Why <code>qwen_g4_kernels</code> Explodes <code>+8.1%</code> on <code>TP=8</code> While Staying Neutral on <code>TP=1</code> NVFP4</strong>:</li><li>At <strong><code>TP=8</code></strong>, <code>in_proj_ba</code> shards <code>8x</code> down to an ultra-skinny <code>[12, 5120]</code> weight matrix across all <code>48</code> GDN layers while the big MLP weight reads shrink <code>8x</code>. At <code>c=1</code> (<code>M = 5</code> or <code>6</code> tokens with <code>MTP-4</code>/<code>MTP-5</code>), cuBLAS&#x27;s <code>M = 2..8</code> WMMA tile path wastes <code>~0.8 ms/step</code> (<code>~11%</code> of the entire <code>TP=8</code> decode step!). Swapping in the split-K Triton kernel cuts <code>TPOT p50</code> from <code>1.69 → 1.49 ms</code> (<code>MTP-5</code>) and <code>1.87 → 1.69 ms</code> (<code>MTP-4</code>), shaving <code>-137</code> to <code>-160 ms</code> straight off E2E p90 with zero accuracy/acceptance regression and clean cuBLAS fallback for <code>M &gt; 8</code>.</li><li>At <strong><code>TP=1</code> NVFP4</strong>, <code>in_proj_ba</code> is wider (<code>[96, 5120]</code>) and full-GPU MLP bandwidth dominates, so <code>qwen_g4_kernels</code> is throughput-neutral (<code>-0.4%</code> to <code>-1.8%</code>) — <strong>do NOT install <code>qwen_g4_kernels</code> on <code>DP=8 × TP=1</code> NVFP4 fleets</strong>, but <strong>DO drop the static <code>--gpu-memory-utilization 0.9</code> cap</strong> on <code>TP=1</code> to gain <code>+7.6%</code> KV headroom (<code>62.00x → 66.74x</code>, <code>533.9x</code> across 8 GPUs).</li><li>For any <strong><code>1x</code> FP8</strong> fallback deployment, combining <code>&quot;draft_lm_head_quantization&quot;: &quot;fp8&quot;</code> + <code>qwen_g4_kernels</code> + Extensible KV Cache delivers a clean <strong><code>+12.9%</code> <code>c=1</code> speedup</strong> (<code>4.91s</code> E2E p90, breaking <code>&lt; 5.0s</code>!) and <code>+12.5%</code> more KV slots (<code>59.85x</code>).</li></ul>
+<h3 id="2s-e2e-latency-feasibility-check-achieved-1-49s-p50-1-65s-p90"><code>&lt; 2s</code> E2E Latency Feasibility Check — <strong>ACHIEVED (<code>1.49s p50 / 1.65s p90</code>)</strong></h3>
+<ul><li><strong>Measured Single-Request Champions (<code>VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=1</code> + <code>NCCL_P2P_LEVEL=SYS</code> + <code>qwen_g4_kernels</code> @ <code>c=1</code>, Uncached <code>10k/500</code>)</strong>:</li><li><strong><code>TP=8 NVFP4 + MTP-5 + qwen_g4_kernels</code> (<code>w5_tp8_nvfp4_mtp5</code>)</strong>: <strong><code>330.03 out_tok/s</code></strong> (<code>4.54</code> mean <code>tok/step</code>), <strong><code>TTFT 748.7 / 750.1 ms</code></strong>, <strong><code>TPOT 1.49 / 1.80 ms</code></strong>, <strong><code>E2E 1.494s p50 / 1.648s p90</code></strong> (<strong>352 ms below <code>2.00s</code> p90!</strong>; without plugin: <code>305.39 tok/s</code>, <code>1.591 / 1.808s</code>).</li><li><strong><code>TP=8 NVFP4 + MTP-4 + qwen_g4_kernels</code> (<code>w5_tp8_nvfp4_mtp4</code>)</strong>: <strong><code>310.64 out_tok/s</code></strong> (<code>4.03</code> mean <code>tok/step</code>), <strong><code>TTFT 748.3 / 749.3 ms</code></strong>, <strong><code>TPOT 1.69 / 2.02 ms</code></strong>, <strong><code>E2E 1.592s p50 / 1.758s p90</code></strong> (<strong>242 ms below <code>2.00s</code> p90!</strong>; without plugin: <code>287.24 tok/s</code>, <code>1.688 / 1.895s</code>).</li><li><strong><code>TP=4 NVFP4 + MTP-4</code> (<code>abl8</code>)</strong>: <strong><code>258.63 out_tok/s</code></strong>, <strong><code>TTFT 748.8 / 761.0 ms</code></strong>, <strong><code>TPOT 2.26 / 2.77 ms</code></strong>, <strong><code>E2E 1.879s p50 / 2.129s p90</code></strong> (<code>DP=2 × TP=4</code> delivers <code>517.3–1,137.2 tok/s</code> per node).</li><li><strong>Verdict</strong>: Strict <code>&lt; 2.0s</code> E2E p90 on uncached <code>10,000</code> in / <code>500</code> out <strong>IS decisively achieved on PCIe Gen5 G4 nodes</strong> with <strong><code>352 ms</code> of SLA margin</strong> using <code>TP=8</code> + <code>VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=1</code> + <code>NCCL_P2P_LEVEL=SYS</code> + <code>qwen_g4_kernels</code> (<code>1.65s</code> p90 with <code>MTP-5</code>, <code>1.76s</code> p90 with <code>MTP-4</code>). Enabling prefix caching on shared system prompts (or using <code>DP=4 × TP=2</code> / <code>DP=8 × TP=1</code> for higher concurrency) preserves <code>3.6x–7.1x</code> higher cluster throughput whenever strict <code>&lt; 2.0s</code> uncached p90 is not required.</li></ul>
+<hr/>
+<h2 id="7-production-gke-deployment-manifests">7. Production GKE Deployment Manifests</h2>
+<h3 id="option-a-default-recommended-dp-8-tp-1-high-efficiency-gke-deployment">Option A (Default Recommended): <code>DP=8 × TP=1</code> High-Efficiency GKE Deployment</h3>
+<p>Uses all 8 GPUs on a node as 8 independent <code>TP=1</code> vLLM pods behind a Kubernetes <code>Service</code> (or Inference Gateway with least-outstanding-requests routing) for <strong><code>2,735.8 out_tok/s</code></strong> balanced (<code>7.26s</code> E2E p90) and up to <strong><code>4,019.2 out_tok/s</code></strong> peak node throughput.</p>
+<div class="code-wrap"><div class="code-bar"><span>yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code class="lang-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwen38-27b-nvfp4-dp8
+  namespace: default
+  labels:
+    app: qwen38-27b-nvfp4
+spec:
+  replicas: 8
+  selector:
+    matchLabels:
+      app: qwen38-27b-nvfp4
+  template:
+    metadata:
+      labels:
+        app: qwen38-27b-nvfp4
+    spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Equal
+          value: present
+          effect: NoSchedule
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-rtx-pro-6000
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:v0.34.0
+          args:
+            - nvidia/Qwen3.8-27B-NVFP4
+            - --host=0.0.0.0
+            - --port=8000
+            - --trust-remote-code
+            - --language-model-only
+            - --max-model-len=16384
+            - --gpu-memory-utilization=0.90
+            - --kv-cache-dtype=fp8
+            - --mamba-ssm-cache-dtype=bfloat16
+            - --max-num-batched-tokens=4096
+            - --max-num-seqs=256
+            - --speculative-config={&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:4}
+            # NOTE: Keep prefix caching ENABLED (default) in production if requests share
+            # a system prompt / policy preamble. Pass --no-enable-prefix-caching only for
+            # uncached synthetic stress testing.
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: HF_HOME
+              value: /hf-cache
+            - name: HF_XET_HIGH_PERFORMANCE
+              value: &quot;1&quot;
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token
+                  key: token
+          resources:
+            requests:
+              cpu: &quot;16&quot;
+              memory: &quot;80Gi&quot;
+              nvidia.com/gpu: &quot;1&quot;
+            limits:
+              cpu: &quot;32&quot;
+              memory: &quot;128Gi&quot;
+              nvidia.com/gpu: &quot;1&quot;
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 45
+            periodSeconds: 10
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: hf-cache
+              mountPath: /hf-cache
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Gi
+        - name: hf-cache
+          hostPath:
+            path: /mnt/stateful_partition/kube-ephemeral-ssd/hf-cache
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen38-27b-nvfp4-svc
+  namespace: default
+spec:
+  selector:
+    app: qwen38-27b-nvfp4
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000</code></pre></div>
+<div class="callout callout-note"><div class="callout-title">NOTE</div><ul><li><strong><code>TP=1</code> Peak Throughput &amp; Extensible KV Override (<code>mode=3</code>)</strong>: Adding <code>env: VLLM_USE_BREAKABLE_CUDAGRAPH=0</code> and <code>--compilation-config={&quot;mode&quot;:3,&quot;pass_config&quot;:{&quot;fuse_qk_norm_rope_kvcache&quot;:true}}</code> lifts <code>DP=8 × TP=1</code> peak throughput at <code>c=16/GPU</code> from <code>4,019.2</code> to <strong><code>4,106.9 out_tok/s</code></strong> (<code>22.35s</code> p90) and trims <code>c=1</code> p90 from <code>3.86s</code> to <strong><code>3.75s</code></strong>. On <code>TP=1</code>, <strong>omitting <code>--gpu-memory-utilization=0.90</code></strong> lets vLLM <code>0.34.0</code>&#x27;s Extensible KV Cache reclaim <code>7.82 GiB</code> of idle VRAM for <strong><code>66.74x</code> (<code>1,093,391</code> tok)</strong> per-GPU KV headroom (<strong><code>533.9x</code></strong> across <code>DP=8</code>). Skip <code>qwen_g4_kernels</code> on <code>TP=1</code> NVFP4 (speed-neutral).</li><li><strong>MTP-5 Tuning Override</strong>: If traffic stays strictly in <code>0.45–0.65 RPS</code> per GPU (<code>3.6–5.2 RPS</code> across 8 replicas), update <code>--speculative-config</code> to <code>{&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:5}</code> to gain <code>-4%</code> to <code>-8%</code> lower Poisson E2E p90 latency (<code>6.82s</code> at <code>0.45 RPS</code>, <code>11.62s</code> at <code>0.65 RPS</code>).</li><li><strong><code>1x</code> FP8 Fallback Override</strong>: If serving <code>Qwen/Qwen3.8-27B-FP8</code>, pass <code>--speculative-config={&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:4,&quot;draft_lm_head_quantization&quot;:&quot;fp8&quot;}</code>, omit <code>--gpu-memory-utilization=0.90</code>, and install <code>qwen_g4_kernels</code> (<code>jawadaminGOOG/g4-recipes</code>) for <strong><code>+12.9%</code></strong> faster <code>c=1</code> (<code>112.79 out_tok/s</code>, <strong><code>4.91s</code></strong> E2E p90, <code>59.85x</code> KV headroom).</li><li><strong>Option B (<code>DP=4 × TP=2</code> Balanced Low-Latency Mode)</strong>: Set <code>replicas: 4</code>, <code>nvidia.com/gpu: &quot;2&quot;</code>, <code>--tensor-parallel-size=2</code>, <code>--gpu-memory-utilization=0.85</code>, <code>dshm.sizeLimit: 32Gi</code>, and export <strong><code>VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=1</code></strong> + <strong><code>NCCL_P2P_LEVEL=SYS</code></strong>. Delivers <strong><code>2.36s p50 / 2.62s p90</code></strong> idle E2E (<code>2.29s / 2.66s</code> at <code>211.2 tok/s</code> with <code>qwen_g4_kernels</code>) and <strong><code>828.4–2,102.3 out_tok/s</code></strong> across 8 GPUs.</li><li><strong>Option C (<code>TP=8</code> Strict <code>&lt; 2.0s</code> p90 or <code>DP=2 × TP=4</code> <code>~2.1s</code> p90 Mode)</strong>: <strong>ALWAYS export BOTH <code>VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=1</code> and <code>NCCL_P2P_LEVEL=SYS</code></strong> with <code>--gpu-memory-utilization=0.85</code> (leaving headroom for FlashInfer&#x27;s late-allocating IPC workspace), keep default Breakable CUDA Graphs (<code>norm_quant</code> fusion intact), and <strong><code>pip install</code> <code>qwen_g4_kernels</code></strong> (<code>jawadaminGOOG/g4-recipes/plugins/qwen_g4_kernels</code>) on <code>TP=8</code> for the skinny Triton <code>in_proj_ba</code> GEMM. Delivers <strong><code>1.49s p50 / 1.65s p90</code></strong> (<code>MTP-5</code>, <strong><code>330.0 tok/s</code></strong>, <code>352 ms</code> under <code>2.0s</code>) or <strong><code>1.59s p50 / 1.76s p90</code></strong> (<code>MTP-4</code>, <strong><code>310.6 tok/s</code></strong>) on <code>TP=8</code>, and <strong><code>1.88s p50 / 2.13s p90</code></strong> (<code>517.3–1,137.2 tok/s</code> node) on <code>DP=2 × TP=4</code>. Do not deploy <code>TP=4</code>/<code>TP=8</code> for throughput-bound fleets (<code>DP=8 × TP=1</code> yields <strong><code>3.6x–7.1x</code></strong> higher node capacity).</li></ul></div></div>
+        </section>
+        
+
+  <!-- HARDWARE PAGES -->
+  
+        <section class="page" id="page-hw-rtx-pro-6000">
+          <div class="page-header">
+            <div class="breadcrumb">Hardware Reference</div>
+            <h1>NVIDIA RTX PRO 6000 Blackwell Server Edition</h1>
+            <a class="gh-link" href="https://github.com/kkr16/inference-recipes/blob/main/hardware/rtx-pro-6000.md" target="_blank" rel="noopener">View Source on GitHub ↗</a>
+          </div>
+          <div class="prose"><h2 id="hardware-specifications">Hardware Specifications</h2>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Spec</th><th style="text-align:left">Value</th></tr></thead><tbody><tr><td style="text-align:left"><strong>Architecture</strong></td><td style="text-align:left">NVIDIA Blackwell (<code>SM120</code>)</td></tr><tr><td style="text-align:left"><strong>VRAM</strong></td><td style="text-align:left">96 GB GDDR7 (<code>~94.97 GiB</code> allocatable per GPU)</td></tr><tr><td style="text-align:left"><strong>Memory Bandwidth</strong></td><td style="text-align:left"><code>~1,598 GB/s</code> (measured) / <code>1,792 GB/s</code> (datasheet)</td></tr><tr><td style="text-align:left"><strong>Interconnect</strong></td><td style="text-align:left">PCIe Gen5 x16 (no NVLink)</td></tr><tr><td style="text-align:left"><strong>Native Low Precision</strong></td><td style="text-align:left">FP8, NVFP4 (FP4 Tensor Cores)</td></tr></tbody></table></div>
+<h2 id="cloud-vm-mappings">Cloud VM Mappings</h2>
+<div class="table-wrap"><table><thead><tr><th style="text-align:left">Cloud</th><th style="text-align:left">Instance Family</th><th style="text-align:right">GPUs</th><th style="text-align:right">vCPUs</th><th style="text-align:right">Host RAM</th><th style="text-align:left">Notes</th></tr></thead><tbody><tr><td style="text-align:left"><strong>Google Cloud</strong></td><td style="text-align:left"><code>g4-standard-48</code></td><td style="text-align:right">1x</td><td style="text-align:right">48</td><td style="text-align:right">192 GB</td><td style="text-align:left">Single-GPU serving</td></tr><tr><td style="text-align:left"><strong>Google Cloud</strong></td><td style="text-align:left"><code>g4-standard-96</code></td><td style="text-align:right">2x</td><td style="text-align:right">96</td><td style="text-align:right">384 GB</td><td style="text-align:left">Single PCIe bridge (<code>PIX</code>)</td></tr><tr><td style="text-align:left"><strong>Google Cloud</strong></td><td style="text-align:left"><code>g4-standard-192</code></td><td style="text-align:right">4x</td><td style="text-align:right">192</td><td style="text-align:right">768 GB</td><td style="text-align:left">Single NUMA socket (<code>PIX</code> + <code>NODE</code>)</td></tr><tr><td style="text-align:left"><strong>Google Cloud</strong></td><td style="text-align:left"><code>g4-standard-384</code></td><td style="text-align:right">8x</td><td style="text-align:right">384</td><td style="text-align:right">1,536 GB</td><td style="text-align:left">Dual-socket PCIe (<code>PIX</code> + <code>NODE</code> + <code>SYS</code>)</td></tr></tbody></table></div>
+<h2 id="multi-gpu-pcie-topology-8x-dual-socket-node">Multi-GPU PCIe Topology (<code>8x</code> Dual-Socket Node)</h2>
+<p>On an 8-GPU <code>g4-standard-384</code> node (<code>nvidia-smi topo -m</code>):</p>
+<ul><li><strong>NUMA Socket 0 (GPUs 0–3)</strong>: <code>(0,1)</code> and <code>(2,3)</code> share a PCIe bridge (<code>PIX</code>); cross-pair <code>(0,2)</code> / <code>(1,3)</code> traverse the host bridge (<code>NODE</code>).</li><li><strong>NUMA Socket 1 (GPUs 4–7)</strong>: Symmetric layout on Socket 1.</li><li><strong>Cross-Socket (GPUs 0–3 ↔ 4–7)</strong>: Connected over the inter-socket fabric (<code>SYS</code>).</li></ul>
+<h2 id="essential-multi-gpu-tuning-knobs-tp-2">Essential Multi-GPU Tuning Knobs (<code>TP &gt;= 2</code>)</h2>
+<p>Because RTX PRO 6000 uses PCIe Gen5 without NVLink, default NCCL settings fall back to CPU shared-memory (<code>SHM</code>) staging for <code>TP &gt;= 4</code>:</p>
+<ol><li><strong><code>NCCL_P2P_LEVEL=SYS</code></strong>: Unlocks direct PCIe P2P DMA inside NCCL across <code>NODE</code> and <code>SYS</code> links (<code>~2x</code> lower small-message AllReduce latency and <code>38–40 GB/s</code> bus bandwidth on large prefill chunks).</li><li><strong><code>VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=1</code></strong> <em>(vLLM)</em>: Activates FlashInfer&#x27;s auto-tuned CUDA-IPC AllReduce for decode steps (<code>&lt;= 512</code> tokens) while keeping <code>NCCL_P2P_LEVEL=SYS</code> for prefill chunks. Pair with <code>--gpu-memory-utilization=0.85</code> to leave headroom for FlashInfer&#x27;s late-allocating IPC workspace.</li><li><strong>Prefer <code>DP</code> over <code>TP</code> for throughput</strong>: When a model fits on 1 GPU (e.g., quantized 27B–32B models), <code>DP=8 × TP=1</code> typically delivers <code>3.5x–7x</code> higher node throughput than <code>TP=4</code> or <code>TP=8</code>. Use <code>TP &gt;= 2</code> only to hit strict single-request latency SLAs.</li></ol></div>
+        </section>
+        
+</main>
+
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('open')">
+  <img id="lightboxImg" src="" alt=""/>
+</div>
+
+<script>
+function navTo(pageId, anchorId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(a => a.classList.remove('active'));
+  const target = document.getElementById('page-' + pageId) || document.getElementById('page-overview');
+  target.classList.add('active');
+  const nav = document.querySelector('.nav-item[data-page="' + pageId + '"]');
+  if (nav) nav.classList.add('active');
+  if (anchorId) {
+    setTimeout(() => {
+      const el = document.getElementById(anchorId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 30);
+  } else {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+  history.replaceState(null, '', '#' + (anchorId || pageId));
+}
+
+function switchTab(btn, paneId) {
+  const card = btn.closest('.recipe-card');
+  card.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  card.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(paneId).classList.add('active');
+}
+
+function copyCode(btn) {
+  const code = btn.closest('.code-wrap').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    const orig = btn.innerText;
+    btn.innerText = 'Copied!';
+    setTimeout(() => btn.innerText = orig, 1400);
+  });
+}
+
+function filterTable(q) {
+  q = q.trim().toLowerCase();
+  document.querySelectorAll('#lbTable tbody tr').forEach(tr => {
+    tr.style.display = !q || tr.dataset.search.includes(q) ? '' : 'none';
+  });
+}
+
+function openLightbox(src, alt) {
+  const lb = document.getElementById('lightbox');
+  const img = document.getElementById('lightboxImg');
+  img.src = src; img.alt = alt || '';
+  lb.classList.add('open');
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  document.getElementById('themeBtn').innerText = next === 'dark' ? 'Light' : 'Dark';
+}
+
+// Handle initial hash navigation
+(function() {
+  const h = location.hash.replace(/^#/, '');
+  if (!h) return;
+  if (h.startsWith('recipe-')) { navTo('recipes', h); }
+  else if (document.getElementById('page-' + h)) { navTo(h); }
+})();
+</script>
+</body>
+</html>
