@@ -1,0 +1,917 @@
+{
+  "model": "Qwen3.8-27B",
+  "hardware": "NVIDIA RTX PRO 6000 Blackwell Server Edition (SM120, 96GB GDDR7)",
+  "workload": {
+    "isl": 10000,
+    "osl": 500,
+    "prefix_caching": false
+  },
+  "series": {
+    "tp1_nvfp4_mtp4": {
+      "label": "TP=1 NVFP4 + MTP-4",
+      "tp": 1,
+      "dp_on_8gpu": 8,
+      "quant": "NVFP4",
+      "engine": "vLLM 0.34.0",
+      "points": [
+        {
+          "concurrency": 1,
+          "out_tok_s": 149.35,
+          "out_tok_s_per_gpu": 149.35,
+          "node_8gpu_out_tok_s": 1194.8,
+          "interactivity_tok_s_user": 198.93,
+          "tpot_p50_ms": 5.027,
+          "tpot_p90_ms": 6.287,
+          "ttft_p50_ms": 718.11,
+          "ttft_p90_ms": 719.51,
+          "e2e_p50_s": 3.221,
+          "e2e_p90_s": 3.856
+        },
+        {
+          "concurrency": 2,
+          "out_tok_s": 249.91,
+          "out_tok_s_per_gpu": 249.91,
+          "node_8gpu_out_tok_s": 1999.28,
+          "interactivity_tok_s_user": 169.06,
+          "tpot_p50_ms": 5.915,
+          "tpot_p90_ms": 6.803,
+          "ttft_p50_ms": 899.07,
+          "ttft_p90_ms": 1402.71,
+          "e2e_p50_s": 3.877,
+          "e2e_p90_s": 4.174
+        },
+        {
+          "concurrency": 4,
+          "out_tok_s": 341.97,
+          "out_tok_s_per_gpu": 341.97,
+          "node_8gpu_out_tok_s": 2735.76,
+          "interactivity_tok_s_user": 111.42,
+          "tpot_p50_ms": 8.975,
+          "tpot_p90_ms": 11.544,
+          "ttft_p50_ms": 870.98,
+          "ttft_p90_ms": 2051.3,
+          "e2e_p50_s": 5.535,
+          "e2e_p90_s": 7.262
+        },
+        {
+          "concurrency": 6,
+          "out_tok_s": 388.82,
+          "out_tok_s_per_gpu": 388.82,
+          "node_8gpu_out_tok_s": 3110.56,
+          "interactivity_tok_s_user": 87.22,
+          "tpot_p50_ms": 11.465,
+          "tpot_p90_ms": 13.121,
+          "ttft_p50_ms": 1083.83,
+          "ttft_p90_ms": 3186.86,
+          "e2e_p50_s": 7.008,
+          "e2e_p90_s": 9.021
+        },
+        {
+          "concurrency": 8,
+          "out_tok_s": 439.72,
+          "out_tok_s_per_gpu": 439.72,
+          "node_8gpu_out_tok_s": 3517.76,
+          "interactivity_tok_s_user": 71.38,
+          "tpot_p50_ms": 14.01,
+          "tpot_p90_ms": 17.627,
+          "ttft_p50_ms": 1009.5,
+          "ttft_p90_ms": 4429.72,
+          "e2e_p50_s": 8.346,
+          "e2e_p90_s": 12.297
+        },
+        {
+          "concurrency": 12,
+          "out_tok_s": 484.31,
+          "out_tok_s_per_gpu": 484.31,
+          "node_8gpu_out_tok_s": 3874.48,
+          "interactivity_tok_s_user": 54.57,
+          "tpot_p50_ms": 18.324,
+          "tpot_p90_ms": 25.484,
+          "ttft_p50_ms": 1591.14,
+          "ttft_p90_ms": 7482.25,
+          "e2e_p50_s": 11.774,
+          "e2e_p90_s": 18.629
+        },
+        {
+          "concurrency": 16,
+          "out_tok_s": 502.4,
+          "out_tok_s_per_gpu": 502.4,
+          "node_8gpu_out_tok_s": 4019.2,
+          "interactivity_tok_s_user": 41.87,
+          "tpot_p50_ms": 23.885,
+          "tpot_p90_ms": 29.166,
+          "ttft_p50_ms": 2367.76,
+          "ttft_p90_ms": 9760.73,
+          "e2e_p50_s": 14.949,
+          "e2e_p90_s": 24.05
+        },
+        {
+          "concurrency": 24,
+          "out_tok_s": 521.55,
+          "out_tok_s_per_gpu": 521.55,
+          "node_8gpu_out_tok_s": 4172.4,
+          "interactivity_tok_s_user": 32.77,
+          "tpot_p50_ms": 30.518,
+          "tpot_p90_ms": 43.626,
+          "ttft_p50_ms": 5090.94,
+          "ttft_p90_ms": 15677.29,
+          "e2e_p50_s": 24.519,
+          "e2e_p90_s": 31.279
+        }
+      ]
+    },
+    "tp1_nvfp4_mtp4_mode3": {
+      "label": "TP=1 NVFP4 + MTP-4 (mode=3)",
+      "tp": 1,
+      "dp_on_8gpu": 8,
+      "quant": "NVFP4",
+      "engine": "vLLM 0.34.0",
+      "points": [
+        {
+          "concurrency": 1,
+          "out_tok_s": 150.22,
+          "out_tok_s_per_gpu": 150.22,
+          "node_8gpu_out_tok_s": 1201.76,
+          "interactivity_tok_s_user": 205.17,
+          "tpot_p50_ms": 4.874,
+          "tpot_p90_ms": 6.062,
+          "ttft_p50_ms": 718.04,
+          "ttft_p90_ms": 722.03,
+          "e2e_p50_s": 3.15,
+          "e2e_p90_s": 3.746
+        },
+        {
+          "concurrency": 4,
+          "out_tok_s": 339.31,
+          "out_tok_s_per_gpu": 339.31,
+          "node_8gpu_out_tok_s": 2714.48,
+          "interactivity_tok_s_user": 109.66,
+          "tpot_p50_ms": 9.119,
+          "tpot_p90_ms": 11.683,
+          "ttft_p50_ms": 944.61,
+          "ttft_p90_ms": 2048.18,
+          "e2e_p50_s": 5.651,
+          "e2e_p90_s": 7.019
+        },
+        {
+          "concurrency": 8,
+          "out_tok_s": 446.18,
+          "out_tok_s_per_gpu": 446.18,
+          "node_8gpu_out_tok_s": 3569.44,
+          "interactivity_tok_s_user": 74.87,
+          "tpot_p50_ms": 13.357,
+          "tpot_p90_ms": 16.39,
+          "ttft_p50_ms": 1524.41,
+          "ttft_p90_ms": 4627.84,
+          "e2e_p50_s": 8.171,
+          "e2e_p90_s": 12.691
+        },
+        {
+          "concurrency": 16,
+          "out_tok_s": 513.36,
+          "out_tok_s_per_gpu": 513.36,
+          "node_8gpu_out_tok_s": 4106.88,
+          "interactivity_tok_s_user": 42.0,
+          "tpot_p50_ms": 23.81,
+          "tpot_p90_ms": 28.144,
+          "ttft_p50_ms": 2630.48,
+          "ttft_p90_ms": 9712.91,
+          "e2e_p50_s": 15.156,
+          "e2e_p90_s": 22.352
+        }
+      ]
+    },
+    "tp1_fp8_mtp4": {
+      "label": "TP=1 FP8 + MTP-4",
+      "tp": 1,
+      "dp_on_8gpu": 8,
+      "quant": "FP8",
+      "engine": "vLLM 0.34.0",
+      "points": [
+        {
+          "concurrency": 1,
+          "out_tok_s": 99.94,
+          "out_tok_s_per_gpu": 99.94,
+          "node_8gpu_out_tok_s": 799.52,
+          "interactivity_tok_s_user": 130.09,
+          "tpot_p50_ms": 7.687,
+          "tpot_p90_ms": 9.118,
+          "ttft_p50_ms": 1035.51,
+          "ttft_p90_ms": 1039.6,
+          "e2e_p50_s": 4.862,
+          "e2e_p90_s": 5.586
+        },
+        {
+          "concurrency": 2,
+          "out_tok_s": 167.6,
+          "out_tok_s_per_gpu": 167.6,
+          "node_8gpu_out_tok_s": 1340.8,
+          "interactivity_tok_s_user": 107.28,
+          "tpot_p50_ms": 9.321,
+          "tpot_p90_ms": 9.818,
+          "ttft_p50_ms": 1119.2,
+          "ttft_p90_ms": 1460.21,
+          "e2e_p50_s": 5.77,
+          "e2e_p90_s": 6.242
+        },
+        {
+          "concurrency": 4,
+          "out_tok_s": 231.92,
+          "out_tok_s_per_gpu": 231.92,
+          "node_8gpu_out_tok_s": 1855.36,
+          "interactivity_tok_s_user": 78.58,
+          "tpot_p50_ms": 12.726,
+          "tpot_p90_ms": 15.553,
+          "ttft_p50_ms": 1163.75,
+          "ttft_p90_ms": 2951.03,
+          "e2e_p50_s": 8.287,
+          "e2e_p90_s": 9.575
+        },
+        {
+          "concurrency": 6,
+          "out_tok_s": 273.82,
+          "out_tok_s_per_gpu": 273.82,
+          "node_8gpu_out_tok_s": 2190.56,
+          "interactivity_tok_s_user": 59.14,
+          "tpot_p50_ms": 16.908,
+          "tpot_p90_ms": 18.155,
+          "ttft_p50_ms": 1475.95,
+          "ttft_p90_ms": 4583.93,
+          "e2e_p50_s": 10.121,
+          "e2e_p90_s": 13.21
+        },
+        {
+          "concurrency": 8,
+          "out_tok_s": 310.35,
+          "out_tok_s_per_gpu": 310.35,
+          "node_8gpu_out_tok_s": 2482.8,
+          "interactivity_tok_s_user": 48.06,
+          "tpot_p50_ms": 20.809,
+          "tpot_p90_ms": 23.147,
+          "ttft_p50_ms": 1579.48,
+          "ttft_p90_ms": 6653.31,
+          "e2e_p50_s": 12.204,
+          "e2e_p90_s": 17.805
+        },
+        {
+          "concurrency": 12,
+          "out_tok_s": 339.33,
+          "out_tok_s_per_gpu": 339.33,
+          "node_8gpu_out_tok_s": 2714.64,
+          "interactivity_tok_s_user": 38.67,
+          "tpot_p50_ms": 25.859,
+          "tpot_p90_ms": 32.882,
+          "ttft_p50_ms": 1933.07,
+          "ttft_p90_ms": 10658.68,
+          "e2e_p50_s": 16.141,
+          "e2e_p90_s": 26.194
+        },
+        {
+          "concurrency": 16,
+          "out_tok_s": 366.26,
+          "out_tok_s_per_gpu": 366.26,
+          "node_8gpu_out_tok_s": 2930.08,
+          "interactivity_tok_s_user": 31.44,
+          "tpot_p50_ms": 31.811,
+          "tpot_p90_ms": 42.181,
+          "ttft_p50_ms": 2824.3,
+          "ttft_p90_ms": 13865.53,
+          "e2e_p50_s": 20.846,
+          "e2e_p90_s": 32.665
+        }
+      ]
+    },
+    "tp1_fp8_mtp4_w5": {
+      "label": "TP=1 FP8 + MTP-4 (FP8 draft head + Triton)",
+      "tp": 1,
+      "dp_on_8gpu": 8,
+      "quant": "FP8",
+      "engine": "vLLM 0.34.0",
+      "points": [
+        {
+          "concurrency": 1,
+          "out_tok_s": 112.79,
+          "out_tok_s_per_gpu": 112.79,
+          "node_8gpu_out_tok_s": 902.32,
+          "interactivity_tok_s_user": 151.33,
+          "tpot_p50_ms": 6.608,
+          "tpot_p90_ms": 7.82,
+          "ttft_p50_ms": 1024.44,
+          "ttft_p90_ms": 1028.12,
+          "e2e_p50_s": 4.324,
+          "e2e_p90_s": 4.91
+        },
+        {
+          "concurrency": 8,
+          "out_tok_s": 318.79,
+          "out_tok_s_per_gpu": 318.79,
+          "node_8gpu_out_tok_s": 2550.32,
+          "interactivity_tok_s_user": 48.42,
+          "tpot_p50_ms": 20.654,
+          "tpot_p90_ms": 24.403,
+          "ttft_p50_ms": 1122.03,
+          "ttft_p90_ms": 6528.79,
+          "e2e_p50_s": 11.726,
+          "e2e_p90_s": 17.311
+        }
+      ]
+    },
+    "tp1_fp8_nomtp": {
+      "label": "TP=1 FP8 Baseline (No MTP)",
+      "tp": 1,
+      "dp_on_8gpu": 8,
+      "quant": "FP8",
+      "engine": "vLLM 0.34.0",
+      "points": [
+        {
+          "concurrency": 1,
+          "out_tok_s": 42.54,
+          "out_tok_s_per_gpu": 42.54,
+          "node_8gpu_out_tok_s": 340.32,
+          "interactivity_tok_s_user": 46.34,
+          "tpot_p50_ms": 21.58,
+          "tpot_p90_ms": 21.583,
+          "ttft_p50_ms": 986.1,
+          "ttft_p90_ms": 988.17,
+          "e2e_p50_s": 11.754,
+          "e2e_p90_s": 11.756
+        },
+        {
+          "concurrency": 2,
+          "out_tok_s": 75.68,
+          "out_tok_s_per_gpu": 75.68,
+          "node_8gpu_out_tok_s": 605.44,
+          "interactivity_tok_s_user": 42.9,
+          "tpot_p50_ms": 23.309,
+          "tpot_p90_ms": 23.827,
+          "ttft_p50_ms": 1580.19,
+          "ttft_p90_ms": 1848.49,
+          "e2e_p50_s": 13.21,
+          "e2e_p90_s": 13.224
+        },
+        {
+          "concurrency": 4,
+          "out_tok_s": 129.38,
+          "out_tok_s_per_gpu": 129.38,
+          "node_8gpu_out_tok_s": 1035.04,
+          "interactivity_tok_s_user": 36.98,
+          "tpot_p50_ms": 27.04,
+          "tpot_p90_ms": 28.19,
+          "ttft_p50_ms": 1941.4,
+          "ttft_p90_ms": 2815.25,
+          "e2e_p50_s": 15.431,
+          "e2e_p90_s": 16.158
+        },
+        {
+          "concurrency": 6,
+          "out_tok_s": 159.54,
+          "out_tok_s_per_gpu": 159.54,
+          "node_8gpu_out_tok_s": 1276.32,
+          "interactivity_tok_s_user": 32.56,
+          "tpot_p50_ms": 30.713,
+          "tpot_p90_ms": 31.477,
+          "ttft_p50_ms": 1950.26,
+          "ttft_p90_ms": 4700.04,
+          "e2e_p50_s": 17.303,
+          "e2e_p90_s": 19.966
+        },
+        {
+          "concurrency": 8,
+          "out_tok_s": 203.95,
+          "out_tok_s_per_gpu": 203.95,
+          "node_8gpu_out_tok_s": 1631.6,
+          "interactivity_tok_s_user": 28.54,
+          "tpot_p50_ms": 35.042,
+          "tpot_p90_ms": 36.068,
+          "ttft_p50_ms": 1955.91,
+          "ttft_p90_ms": 5858.53,
+          "e2e_p50_s": 19.517,
+          "e2e_p90_s": 23.292
+        },
+        {
+          "concurrency": 12,
+          "out_tok_s": 248.01,
+          "out_tok_s_per_gpu": 248.01,
+          "node_8gpu_out_tok_s": 1984.08,
+          "interactivity_tok_s_user": 22.89,
+          "tpot_p50_ms": 43.68,
+          "tpot_p90_ms": 44.305,
+          "ttft_p50_ms": 2273.89,
+          "ttft_p90_ms": 9732.58,
+          "e2e_p50_s": 23.873,
+          "e2e_p90_s": 31.533
+        },
+        {
+          "concurrency": 16,
+          "out_tok_s": 249.53,
+          "out_tok_s_per_gpu": 249.53,
+          "node_8gpu_out_tok_s": 1996.24,
+          "interactivity_tok_s_user": 21.07,
+          "tpot_p50_ms": 47.46,
+          "tpot_p90_ms": 52.432,
+          "ttft_p50_ms": 4712.57,
+          "ttft_p90_ms": 13742.99,
+          "e2e_p50_s": 30.868,
+          "e2e_p90_s": 36.262
+        },
+        {
+          "concurrency": 24,
+          "out_tok_s": 281.47,
+          "out_tok_s_per_gpu": 281.47,
+          "node_8gpu_out_tok_s": 2251.76,
+          "interactivity_tok_s_user": 17.42,
+          "tpot_p50_ms": 57.392,
+          "tpot_p90_ms": 69.689,
+          "ttft_p50_ms": 8504.3,
+          "ttft_p90_ms": 20830.05,
+          "e2e_p50_s": 43.262,
+          "e2e_p90_s": 45.437
+        }
+      ]
+    },
+    "tp1_nvfp4_nomtp": {
+      "label": "TP=1 NVFP4 (No MTP)",
+      "tp": 1,
+      "dp_on_8gpu": 8,
+      "quant": "NVFP4",
+      "engine": "vLLM 0.34.0",
+      "points": [
+        {
+          "concurrency": 1,
+          "out_tok_s": 60.75,
+          "out_tok_s_per_gpu": 60.75,
+          "node_8gpu_out_tok_s": 486.0,
+          "interactivity_tok_s_user": 66.06,
+          "tpot_p50_ms": 15.138,
+          "tpot_p90_ms": 15.139,
+          "ttft_p50_ms": 676.62,
+          "ttft_p90_ms": 678.69,
+          "e2e_p50_s": 8.23,
+          "e2e_p90_s": 8.233
+        },
+        {
+          "concurrency": 2,
+          "out_tok_s": 108.36,
+          "out_tok_s_per_gpu": 108.36,
+          "node_8gpu_out_tok_s": 866.88,
+          "interactivity_tok_s_user": 61.21,
+          "tpot_p50_ms": 16.338,
+          "tpot_p90_ms": 16.731,
+          "ttft_p50_ms": 1072.69,
+          "ttft_p90_ms": 1277.11,
+          "e2e_p50_s": 9.226,
+          "e2e_p90_s": 9.229
+        },
+        {
+          "concurrency": 4,
+          "out_tok_s": 185.1,
+          "out_tok_s_per_gpu": 185.1,
+          "node_8gpu_out_tok_s": 1480.8,
+          "interactivity_tok_s_user": 52.9,
+          "tpot_p50_ms": 18.903,
+          "tpot_p90_ms": 19.768,
+          "ttft_p50_ms": 1320.68,
+          "ttft_p90_ms": 1946.89,
+          "e2e_p50_s": 10.785,
+          "e2e_p90_s": 11.376
+        },
+        {
+          "concurrency": 6,
+          "out_tok_s": 246.74,
+          "out_tok_s_per_gpu": 246.74,
+          "node_8gpu_out_tok_s": 1973.92,
+          "interactivity_tok_s_user": 46.36,
+          "tpot_p50_ms": 21.57,
+          "tpot_p90_ms": 22.423,
+          "ttft_p50_ms": 1329.04,
+          "ttft_p90_ms": 3025.79,
+          "e2e_p50_s": 12.111,
+          "e2e_p90_s": 13.753
+        },
+        {
+          "concurrency": 8,
+          "out_tok_s": 289.84,
+          "out_tok_s_per_gpu": 289.84,
+          "node_8gpu_out_tok_s": 2318.72,
+          "interactivity_tok_s_user": 40.33,
+          "tpot_p50_ms": 24.796,
+          "tpot_p90_ms": 25.443,
+          "ttft_p50_ms": 1334.85,
+          "ttft_p90_ms": 3975.72,
+          "e2e_p50_s": 13.721,
+          "e2e_p90_s": 16.321
+        },
+        {
+          "concurrency": 12,
+          "out_tok_s": 352.1,
+          "out_tok_s_per_gpu": 352.1,
+          "node_8gpu_out_tok_s": 2816.8,
+          "interactivity_tok_s_user": 32.38,
+          "tpot_p50_ms": 30.883,
+          "tpot_p90_ms": 31.241,
+          "ttft_p50_ms": 1545.44,
+          "ttft_p90_ms": 6616.63,
+          "e2e_p50_s": 16.813,
+          "e2e_p90_s": 22.047
+        },
+        {
+          "concurrency": 16,
+          "out_tok_s": 394.7,
+          "out_tok_s_per_gpu": 394.7,
+          "node_8gpu_out_tok_s": 3157.6,
+          "interactivity_tok_s_user": 26.89,
+          "tpot_p50_ms": 37.182,
+          "tpot_p90_ms": 37.276,
+          "ttft_p50_ms": 1656.5,
+          "ttft_p90_ms": 8733.43,
+          "e2e_p50_s": 19.946,
+          "e2e_p90_s": 27.299
+        },
+        {
+          "concurrency": 24,
+          "out_tok_s": 409.74,
+          "out_tok_s_per_gpu": 409.74,
+          "node_8gpu_out_tok_s": 3277.92,
+          "interactivity_tok_s_user": 22.42,
+          "tpot_p50_ms": 44.604,
+          "tpot_p90_ms": 50.426,
+          "ttft_p50_ms": 4559.44,
+          "ttft_p90_ms": 13877.7,
+          "e2e_p50_s": 29.71,
+          "e2e_p90_s": 34.984
+        }
+      ]
+    },
+    "tp1_bf16_naive": {
+      "label": "TP=1 BF16 Naive",
+      "tp": 1,
+      "dp_on_8gpu": 8,
+      "quant": "BF16",
+      "engine": "vLLM 0.34.0",
+      "points": [
+        {
+          "concurrency": 1,
+          "out_tok_s": 24.49,
+          "out_tok_s_per_gpu": 24.49,
+          "node_8gpu_out_tok_s": 195.92,
+          "interactivity_tok_s_user": 26.36,
+          "tpot_p50_ms": 37.942,
+          "tpot_p90_ms": 37.945,
+          "ttft_p50_ms": 1483.53,
+          "ttft_p90_ms": 1486.35,
+          "e2e_p50_s": 20.416,
+          "e2e_p90_s": 20.42
+        },
+        {
+          "concurrency": 4,
+          "out_tok_s": 77.65,
+          "out_tok_s_per_gpu": 77.65,
+          "node_8gpu_out_tok_s": 621.2,
+          "interactivity_tok_s_user": 23.21,
+          "tpot_p50_ms": 43.078,
+          "tpot_p90_ms": 46.645,
+          "ttft_p50_ms": 4243.43,
+          "ttft_p90_ms": 5104.89,
+          "e2e_p50_s": 25.74,
+          "e2e_p90_s": 25.897
+        },
+        {
+          "concurrency": 8,
+          "out_tok_s": 121.38,
+          "out_tok_s_per_gpu": 121.38,
+          "node_8gpu_out_tok_s": 971.04,
+          "interactivity_tok_s_user": 17.83,
+          "tpot_p50_ms": 56.083,
+          "tpot_p90_ms": 59.251,
+          "ttft_p50_ms": 4790.29,
+          "ttft_p90_ms": 10443.2,
+          "e2e_p50_s": 32.815,
+          "e2e_p90_s": 38.493
+        }
+      ]
+    },
+    "tp2_nvfp4_mtp4_ipc": {
+      "label": "TP=2 NVFP4 + MTP-4 (PCIE_IPC + P2P=SYS)",
+      "tp": 2,
+      "dp_on_8gpu": 4,
+      "quant": "NVFP4",
+      "engine": "vLLM 0.34.0",
+      "points": [
+        {
+          "concurrency": 1,
+          "out_tok_s": 207.09,
+          "out_tok_s_per_gpu": 103.55,
+          "node_8gpu_out_tok_s": 828.36,
+          "interactivity_tok_s_user": 315.06,
+          "tpot_p50_ms": 3.174,
+          "tpot_p90_ms": 3.686,
+          "ttft_p50_ms": 775.87,
+          "ttft_p90_ms": 790.93,
+          "e2e_p50_s": 2.359,
+          "e2e_p90_s": 2.616
+        },
+        {
+          "concurrency": 4,
+          "out_tok_s": 403.88,
+          "out_tok_s_per_gpu": 201.94,
+          "node_8gpu_out_tok_s": 1615.52,
+          "interactivity_tok_s_user": 132.91,
+          "tpot_p50_ms": 7.524,
+          "tpot_p90_ms": 10.482,
+          "ttft_p50_ms": 818.87,
+          "ttft_p90_ms": 2044.44,
+          "e2e_p50_s": 5.099,
+          "e2e_p90_s": 6.18
+        },
+        {
+          "concurrency": 16,
+          "out_tok_s": 522.73,
+          "out_tok_s_per_gpu": 261.37,
+          "node_8gpu_out_tok_s": 2090.92,
+          "interactivity_tok_s_user": 43.78,
+          "tpot_p50_ms": 22.844,
+          "tpot_p90_ms": 30.738,
+          "ttft_p50_ms": 1625.93,
+          "ttft_p90_ms": 10106.51,
+          "e2e_p50_s": 14.605,
+          "e2e_p90_s": 24.27
+        }
+      ]
+    },
+    "tp2_nvfp4_mtp4_w5": {
+      "label": "TP=2 NVFP4 + MTP-4 (PCIE_IPC + Triton)",
+      "tp": 2,
+      "dp_on_8gpu": 4,
+      "quant": "NVFP4",
+      "engine": "vLLM 0.34.0",
+      "points": [
+        {
+          "concurrency": 1,
+          "out_tok_s": 211.21,
+          "out_tok_s_per_gpu": 105.61,
+          "node_8gpu_out_tok_s": 844.84,
+          "interactivity_tok_s_user": 329.71,
+          "tpot_p50_ms": 3.033,
+          "tpot_p90_ms": 3.777,
+          "ttft_p50_ms": 774.85,
+          "ttft_p90_ms": 775.1,
+          "e2e_p50_s": 2.287,
+          "e2e_p90_s": 2.66
+        },
+        {
+          "concurrency": 4,
+          "out_tok_s": 391.04,
+          "out_tok_s_per_gpu": 195.52,
+          "node_8gpu_out_tok_s": 1564.16,
+          "interactivity_tok_s_user": 130.33,
+          "tpot_p50_ms": 7.673,
+          "tpot_p90_ms": 9.414,
+          "ttft_p50_ms": 819.3,
+          "ttft_p90_ms": 2185.49,
+          "e2e_p50_s": 4.814,
+          "e2e_p90_s": 6.641
+        },
+        {
+          "concurrency": 16,
+          "out_tok_s": 525.58,
+          "out_tok_s_per_gpu": 262.79,
+          "node_8gpu_out_tok_s": 2102.32,
+          "interactivity_tok_s_user": 47.11,
+          "tpot_p50_ms": 21.227,
+          "tpot_p90_ms": 33.272,
+          "ttft_p50_ms": 2951.25,
+          "ttft_p90_ms": 10105.97,
+          "e2e_p50_s": 14.881,
+          "e2e_p90_s": 21.113
+        }
+      ]
+    },
+    "tp4_nvfp4_mtp4_ipc": {
+      "label": "TP=4 NVFP4 + MTP-4 (PCIE_IPC + P2P=SYS)",
+      "tp": 4,
+      "dp_on_8gpu": 2,
+      "quant": "NVFP4",
+      "engine": "vLLM 0.34.0",
+      "points": [
+        {
+          "concurrency": 1,
+          "out_tok_s": 258.63,
+          "out_tok_s_per_gpu": 64.66,
+          "node_8gpu_out_tok_s": 517.26,
+          "interactivity_tok_s_user": 443.26,
+          "tpot_p50_ms": 2.256,
+          "tpot_p90_ms": 2.766,
+          "ttft_p50_ms": 748.79,
+          "ttft_p90_ms": 761.0,
+          "e2e_p50_s": 1.879,
+          "e2e_p90_s": 2.129
+        },
+        {
+          "concurrency": 4,
+          "out_tok_s": 467.76,
+          "out_tok_s_per_gpu": 116.94,
+          "node_8gpu_out_tok_s": 935.52,
+          "interactivity_tok_s_user": 184.5,
+          "tpot_p50_ms": 5.42,
+          "tpot_p90_ms": 8.627,
+          "ttft_p50_ms": 934.14,
+          "ttft_p90_ms": 2105.39,
+          "e2e_p50_s": 4.088,
+          "e2e_p90_s": 5.512
+        },
+        {
+          "concurrency": 16,
+          "out_tok_s": 568.58,
+          "out_tok_s_per_gpu": 142.15,
+          "node_8gpu_out_tok_s": 1137.16,
+          "interactivity_tok_s_user": 46.99,
+          "tpot_p50_ms": 21.28,
+          "tpot_p90_ms": 26.527,
+          "ttft_p50_ms": 1839.5,
+          "ttft_p90_ms": 9740.27,
+          "e2e_p50_s": 13.856,
+          "e2e_p90_s": 21.762
+        }
+      ]
+    },
+    "tp8_nvfp4_mtp4_w5": {
+      "label": "TP=8 NVFP4 + MTP-4 (PCIE_IPC + P2P=SYS + Triton)",
+      "tp": 8,
+      "dp_on_8gpu": 1,
+      "quant": "NVFP4",
+      "engine": "vLLM 0.34.0",
+      "points": [
+        {
+          "concurrency": 1,
+          "out_tok_s": 310.64,
+          "out_tok_s_per_gpu": 38.83,
+          "node_8gpu_out_tok_s": 310.64,
+          "interactivity_tok_s_user": 592.07,
+          "tpot_p50_ms": 1.689,
+          "tpot_p90_ms": 2.023,
+          "ttft_p50_ms": 748.3,
+          "ttft_p90_ms": 749.32,
+          "e2e_p50_s": 1.592,
+          "e2e_p90_s": 1.758
+        },
+        {
+          "concurrency": 4,
+          "out_tok_s": 503.68,
+          "out_tok_s_per_gpu": 62.96,
+          "node_8gpu_out_tok_s": 503.68,
+          "interactivity_tok_s_user": 164.04,
+          "tpot_p50_ms": 6.096,
+          "tpot_p90_ms": 6.892,
+          "ttft_p50_ms": 840.95,
+          "ttft_p90_ms": 1968.43,
+          "e2e_p50_s": 3.969,
+          "e2e_p90_s": 5.103
+        },
+        {
+          "concurrency": 16,
+          "out_tok_s": 578.9,
+          "out_tok_s_per_gpu": 72.36,
+          "node_8gpu_out_tok_s": 578.9,
+          "interactivity_tok_s_user": 45.74,
+          "tpot_p50_ms": 21.861,
+          "tpot_p90_ms": 29.077,
+          "ttft_p50_ms": 1535.71,
+          "ttft_p90_ms": 9705.3,
+          "e2e_p50_s": 13.326,
+          "e2e_p90_s": 22.511
+        }
+      ]
+    },
+    "tp8_nvfp4_mtp5_w5": {
+      "label": "TP=8 NVFP4 + MTP-5 (PCIE_IPC + P2P=SYS + Triton)",
+      "tp": 8,
+      "dp_on_8gpu": 1,
+      "quant": "NVFP4",
+      "engine": "vLLM 0.34.0",
+      "points": [
+        {
+          "concurrency": 1,
+          "out_tok_s": 330.03,
+          "out_tok_s_per_gpu": 41.25,
+          "node_8gpu_out_tok_s": 330.03,
+          "interactivity_tok_s_user": 669.34,
+          "tpot_p50_ms": 1.494,
+          "tpot_p90_ms": 1.8,
+          "ttft_p50_ms": 748.67,
+          "ttft_p90_ms": 750.13,
+          "e2e_p50_s": 1.494,
+          "e2e_p90_s": 1.648
+        },
+        {
+          "concurrency": 2,
+          "out_tok_s": 400.49,
+          "out_tok_s_per_gpu": 50.06,
+          "node_8gpu_out_tok_s": 400.49,
+          "interactivity_tok_s_user": 302.21,
+          "tpot_p50_ms": 3.309,
+          "tpot_p90_ms": 3.839,
+          "ttft_p50_ms": 775.27,
+          "ttft_p90_ms": 1423.17,
+          "e2e_p50_s": 2.489,
+          "e2e_p90_s": 3.277
+        }
+      ]
+    },
+    "tp8_bf16_mtp4_ipc": {
+      "label": "TP=8 BF16 + MTP-4 (PCIE_IPC + P2P=SYS)",
+      "tp": 8,
+      "dp_on_8gpu": 1,
+      "quant": "BF16",
+      "engine": "vLLM 0.34.0",
+      "points": [
+        {
+          "concurrency": 1,
+          "out_tok_s": 224.17,
+          "out_tok_s_per_gpu": 28.02,
+          "node_8gpu_out_tok_s": 224.17,
+          "interactivity_tok_s_user": 383.29,
+          "tpot_p50_ms": 2.609,
+          "tpot_p90_ms": 3.426,
+          "ttft_p50_ms": 850.24,
+          "ttft_p90_ms": 854.37,
+          "e2e_p50_s": 2.154,
+          "e2e_p90_s": 2.56
+        },
+        {
+          "concurrency": 16,
+          "out_tok_s": 502.17,
+          "out_tok_s_per_gpu": 62.77,
+          "node_8gpu_out_tok_s": 502.17,
+          "interactivity_tok_s_user": 42.05,
+          "tpot_p50_ms": 23.779,
+          "tpot_p90_ms": 31.788,
+          "ttft_p50_ms": 2177.32,
+          "ttft_p90_ms": 11026.29,
+          "e2e_p50_s": 15.589,
+          "e2e_p90_s": 24.303
+        }
+      ]
+    },
+    "tp8_bf16_naive": {
+      "label": "TP=8 BF16 Naive",
+      "tp": 8,
+      "dp_on_8gpu": 1,
+      "quant": "BF16",
+      "engine": "vLLM 0.34.0",
+      "points": [
+        {
+          "concurrency": 1,
+          "out_tok_s": 67.4,
+          "out_tok_s_per_gpu": 8.43,
+          "node_8gpu_out_tok_s": 67.4,
+          "interactivity_tok_s_user": 79.9,
+          "tpot_p50_ms": 12.515,
+          "tpot_p90_ms": 12.597,
+          "ttft_p50_ms": 1161.13,
+          "ttft_p90_ms": 1162.62,
+          "e2e_p50_s": 7.406,
+          "e2e_p90_s": 7.449
+        },
+        {
+          "concurrency": 4,
+          "out_tok_s": 169.16,
+          "out_tok_s_per_gpu": 21.14,
+          "node_8gpu_out_tok_s": 169.16,
+          "interactivity_tok_s_user": 56.59,
+          "tpot_p50_ms": 17.671,
+          "tpot_p90_ms": 21.315,
+          "ttft_p50_ms": 2996.53,
+          "ttft_p90_ms": 3666.93,
+          "e2e_p50_s": 11.815,
+          "e2e_p90_s": 12.286
+        },
+        {
+          "concurrency": 8,
+          "out_tok_s": 239.96,
+          "out_tok_s_per_gpu": 30.0,
+          "node_8gpu_out_tok_s": 239.96,
+          "interactivity_tok_s_user": 38.31,
+          "tpot_p50_ms": 26.101,
+          "tpot_p90_ms": 29.852,
+          "ttft_p50_ms": 3613.05,
+          "ttft_p90_ms": 7084.97,
+          "e2e_p50_s": 16.639,
+          "e2e_p90_s": 19.998
+        },
+        {
+          "concurrency": 16,
+          "out_tok_s": 291.24,
+          "out_tok_s_per_gpu": 36.41,
+          "node_8gpu_out_tok_s": 291.24,
+          "interactivity_tok_s_user": 21.22,
+          "tpot_p50_ms": 47.12,
+          "tpot_p90_ms": 48.701,
+          "ttft_p50_ms": 3825.53,
+          "ttft_p90_ms": 14964.68,
+          "e2e_p50_s": 27.331,
+          "e2e_p90_s": 38.48
+        }
+      ]
+    }
+  }
+}

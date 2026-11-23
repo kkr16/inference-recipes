@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# Datasets & large raw logs (generate via bench/scripts instead)
+*.jsonl
+*.log
+*.mp4
+*.pdf
+
+# OS / Editors
+.DS_Store
+.vscode/
+.idea/
+*.swp

@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwen38-27b-nvfp4-dp8-mode3
+  namespace: default
+  labels:
+    app: qwen38-27b-nvfp4-dp8-mode3
+spec:
+  replicas: 8
+  selector:
+    matchLabels:
+      app: qwen38-27b-nvfp4-dp8-mode3
+  template:
+    metadata:
+      labels:
+        app: qwen38-27b-nvfp4-dp8-mode3
+    spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Equal
+          value: present
+          effect: NoSchedule
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-rtx-pro-6000
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:v0.34.0
+          args:
+            - nvidia/Qwen3.8-27B-NVFP4
+            - --host=0.0.0.0
+            - --port=8000
+            - --trust-remote-code
+            - --language-model-only
+            - --max-model-len=16384
+            - --kv-cache-dtype=fp8
+            - --mamba-ssm-cache-dtype=bfloat16
+            - --max-num-batched-tokens=4096
+            - --max-num-seqs=256
+            - '--speculative-config={"method":"mtp","num_speculative_tokens":4}'
+            - '--compilation-config={"mode":3,"pass_config":{"fuse_qk_norm_rope_kvcache":true}}'
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: HF_HOME
+              value: "/hf-cache"
+            - name: HF_XET_HIGH_PERFORMANCE
+              value: "1"
+            - name: VLLM_USE_BREAKABLE_CUDAGRAPH
+              value: "0"
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token
+                  key: token
+          resources:
+            requests:
+              cpu: "16"
+              memory: "80Gi"
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "32"
+              memory: "128Gi"
+              nvidia.com/gpu: "1"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 45
+            periodSeconds: 10
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: hf-cache
+              mountPath: /hf-cache
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Gi
+        - name: hf-cache
+          hostPath:
+            path: /mnt/stateful_partition/kube-ephemeral-ssd/hf-cache
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen38-27b-nvfp4-dp8-mode3-svc
+  namespace: default
+spec:
+  selector:
+    app: qwen38-27b-nvfp4-dp8-mode3
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000

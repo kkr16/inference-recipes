@@ -1,0 +1,15 @@
+model: Qwen3.8-27B
+checkpoint: Qwen/Qwen3.8-27B-FP8
+hardware: rtx-pro-6000
+cloud_instance: gcp-g4-standard-384
+topology: DP=8 x TP=1
+engine: vLLM
+engine_version: "0.34.0"
+quantization: FP8
+features: [MTP-4, fp8-draft-head, qwen_g4_kernels, extensible-kv]
+workload: "10k/500 (uncached)"
+date: "2026-11-23"
+metrics:
+  c1_e2e_p90_s: 4.91
+  peak_out_tok_s: "2,550.3"
+  peak_load: "DP=8 @ c=8/GPU"
