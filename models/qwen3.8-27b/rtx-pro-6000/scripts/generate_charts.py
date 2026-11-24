@@ -421,6 +421,146 @@ def svg_to_png(svg_path: Path, png_path: Path, width: int = 1240, height: int = 
         Path(html_path).unlink(missing_ok=True)
 
 
+def build_workload_pareto(
+    wl_data: Dict[str, Any],
+    *,
+    title: str,
+    subtitle: str,
+    accent: str,
+    x_max: float,
+    x_step: int,
+    y_max: float,
+    y_step: int,
+    annotations: List[Tuple[float, float, float, float, str, str, str]],
+    footer_left: str,
+) -> str:
+    W, H = 1240, 740
+    ML, MR, MT, MB = 92, 42, 118, 92
+    PW, PH = W - ML - MR, H - MT - MB
+
+    def sx(x: float) -> float:
+        return ML + (x / x_max) * PW
+
+    def sy(y: float) -> float:
+        return MT + PH - (y / y_max) * PH
+
+    wl_colors = {
+        "tp1_nvfp4_nomtp": "#94A3B8",
+        "tp1_nvfp4_mtp4": "#64748B",
+        "tp8_nvfp4_base": "#9CA3AF",
+        "tp1_nvfp4_dyn_mtp": "#0D9488",
+        "tp2_nvfp4_dyn_triton": "#2563EB",
+        "tp4_nvfp4_dyn_triton": "#7C3AED",
+        "tp8_nvfp4_dyn_triton": "#DC2626",
+    }
+
+    plot_specs = [
+        ("tp1_nvfp4_nomtp",      "TP=1 NVFP4 Baseline (No MTP)",                        "circle",   True,  2.1),
+        ("tp1_nvfp4_mtp4",       "TP=1 NVFP4 + Static MTP-4 (Prior Baseline)",          "square",   True,  2.1),
+        ("tp8_nvfp4_base",       "TP=8 NVFP4 + Static MTP-4 (PCIE_IPC + CUMEM=0)",      "triangle", True,  2.1),
+        ("tp1_nvfp4_dyn_mtp",    "TP=1 Dyn-MTP 6/3 + Rust (Champion · DP=8)",           "circle",   False, 3.0),
+        ("tp2_nvfp4_dyn_triton", "TP=2 PIX Dyn-MTP + LocalArgmax + Triton (DP=4)",      "square",   False, 2.8),
+        ("tp4_nvfp4_dyn_triton", "TP=4 NODE Dyn-MTP + LocalArgmax + Triton (DP=2)",     "diamond",  False, 2.8),
+        ("tp8_nvfp4_dyn_triton", "TP=8 SYS Dyn-MTP + LocalArgmax + Triton (1×TP=8)",    "star",     False, 2.8),
+    ]
+
+    champ_keys = ["tp1_nvfp4_dyn_mtp", "tp2_nvfp4_dyn_triton", "tp4_nvfp4_dyn_triton", "tp8_nvfp4_dyn_triton"]
+    all_champ_pts: List[Tuple[float, float]] = []
+    for k in champ_keys:
+        for p in wl_data["series"][k]["points"]:
+            all_champ_pts.append((p["interactivity_tok_s_user"], p["out_tok_s_per_gpu"]))
+    frontier = compute_pareto_upper_right(all_champ_pts)
+
+    lines = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">',
+        '<rect width="100%" height="100%" fill="#FFFFFF"/>',
+        f'<rect x="0" y="0" width="{W}" height="5" fill="{accent}"/>',
+        f'<rect x="{ML}" y="{MT}" width="{PW}" height="{PH}" fill="#FAFBFD" stroke="#E2E8F0" stroke-width="1"/>',
+    ]
+
+    lines.append(
+        f'<text x="{ML}" y="48" font-family="{FONT_SANS}" font-size="25" font-weight="700" fill="#0F172A">{esc(title)}</text>'
+    )
+    lines.append(
+        f'<text x="{ML}" y="74" font-family="{FONT_SANS}" font-size="14" fill="#475569">{esc(subtitle)}</text>'
+    )
+    lines.append(
+        f'<rect x="{ML + PW - 134}" y="{MT + 12}" width="122" height="28" rx="14" fill="#ECFDF5" stroke="#A7F3D0" stroke-width="1"/>'
+        f'<text x="{ML + PW - 73}" y="{MT + 31}" text-anchor="middle" font-family="{FONT_SANS}" font-size="12.5" font-weight="700" fill="#047857">Better  ↗</text>'
+    )
+
+    for xv in range(0, int(x_max) + 1, x_step):
+        px = sx(xv)
+        lines.append(f'<line x1="{px:.1f}" y1="{MT}" x2="{px:.1f}" y2="{MT+PH}" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>')
+        lines.append(f'<text x="{px:.1f}" y="{MT+PH+24}" text-anchor="middle" font-family="{FONT_MONO}" font-size="12" fill="#475569">{xv}</text>')
+    for yv in range(0, int(y_max) + 1, y_step):
+        py = sy(yv)
+        lines.append(f'<line x1="{ML}" y1="{py:.1f}" x2="{ML+PW}" y2="{py:.1f}" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>')
+        lines.append(f'<text x="{ML-12}" y="{py+4:.1f}" text-anchor="end" font-family="{FONT_MONO}" font-size="12" fill="#475569">{yv:,}</text>')
+
+    lines.append(f'<line x1="{ML}" y1="{MT+PH}" x2="{ML+PW}" y2="{MT+PH}" stroke="#334155" stroke-width="1.5"/>')
+    lines.append(f'<line x1="{ML}" y1="{MT}" x2="{ML}" y2="{MT+PH}" stroke="#334155" stroke-width="1.5"/>')
+
+    lines.append(
+        f'<text x="{ML + PW/2:.1f}" y="{H - 36}" text-anchor="middle" font-family="{FONT_SANS}" font-size="14.5" font-weight="600" fill="#0F172A">'
+        f'Interactivity — Output Tokens / sec / User  (1000 / TPOT p50)</text>'
+    )
+    lines.append(
+        f'<text x="26" y="{MT + PH/2:.1f}" text-anchor="middle" font-family="{FONT_SANS}" font-size="14.5" font-weight="600" fill="#0F172A" '
+        f'transform="rotate(-90 26 {MT + PH/2:.1f})">Output Throughput per GPU  (tok/s/GPU)</text>'
+    )
+
+    if frontier:
+        poly_pts = [f"{sx(frontier[0][0]):.1f},{sy(0):.1f}"]
+        for x, y in frontier:
+            poly_pts.append(f"{sx(x):.1f},{sy(y):.1f}")
+        poly_pts.append(f"{sx(frontier[-1][0]):.1f},{sy(0):.1f}")
+        lines.append(f'<polygon points="{" ".join(poly_pts)}" fill="{accent}" fill-opacity="0.06"/>')
+        path_d = "M " + " L ".join(f"{sx(x):.1f},{sy(y):.1f}" for x, y in frontier)
+        lines.append(f'<path d="{path_d}" fill="none" stroke="#0F172A" stroke-width="2.2" stroke-dasharray="7,5" stroke-opacity="0.55"/>')
+
+    for key, label, shape, is_dashed, sw in plot_specs:
+        pts = sorted(wl_data["series"][key]["points"], key=lambda p: p["interactivity_tok_s_user"])
+        color = wl_colors[key]
+        dash = ' stroke-dasharray="5,4"' if is_dashed else ""
+        opacity = "0.78" if is_dashed else "1.0"
+        d = "M " + " L ".join(f"{sx(p['interactivity_tok_s_user']):.1f},{sy(p['out_tok_s_per_gpu']):.1f}" for p in pts)
+        lines.append(f'<path d="{d}" fill="none" stroke="{color}" stroke-width="{sw}"{dash} stroke-opacity="{opacity}"/>')
+        r = 5.5 if not is_dashed else 4.2
+        for p in pts:
+            lines.append(marker_svg(shape, sx(p["interactivity_tok_s_user"]), sy(p["out_tok_s_per_gpu"]), r, color))
+
+    for x, y, dx, dy, txt, col, anchor in annotations:
+        px, py = sx(x), sy(y)
+        tx, ty = px + dx, py + dy
+        lines.append(f'<line x1="{px:.1f}" y1="{py:.1f}" x2="{tx:.1f}" y2="{ty+3:.1f}" stroke="{col}" stroke-width="1" stroke-opacity="0.55"/>')
+        lines.append(f'<text x="{tx:.1f}" y="{ty:.1f}" text-anchor="{anchor}" font-family="{FONT_SANS}" font-size="11.5" font-weight="600" fill="{col}">{esc(txt)}</text>')
+
+    lx, ly = ML + PW - 392, MT + 54
+    lh = 22 * (len(plot_specs) + 1) + 18
+    lines.append(f'<rect x="{lx}" y="{ly}" width="380" height="{lh}" rx="8" fill="#FFFFFF" fill-opacity="0.95" stroke="#CBD5E1" stroke-width="1"/>')
+    fy = ly + 22
+    lines.append(f'<line x1="{lx+14}" y1="{fy-4}" x2="{lx+40}" y2="{fy-4}" stroke="#0F172A" stroke-width="2.2" stroke-dasharray="6,4" stroke-opacity="0.65"/>')
+    lines.append(f'<text x="{lx+48}" y="{fy}" font-family="{FONT_SANS}" font-size="11.5" font-weight="700" fill="#0F172A">NVFP4 Dynamic MTP Pareto Frontier</text>')
+    for idx, (key, label, shape, is_dashed, sw) in enumerate(reversed(plot_specs)):
+        ry = ly + 22 * (idx + 2)
+        col = wl_colors[key]
+        dash = ' stroke-dasharray="4,3"' if is_dashed else ""
+        lines.append(f'<line x1="{lx+14}" y1="{ry-4}" x2="{lx+40}" y2="{ry-4}" stroke="{col}" stroke-width="{sw}"{dash}/>')
+        lines.append(marker_svg(shape, lx + 27, ry - 4, 4.3, col))
+        lines.append(f'<text x="{lx+48}" y="{ry}" font-family="{FONT_SANS}" font-size="11.5" fill="#1E293B">{esc(label)}</text>')
+
+    lines.append(
+        f'<text x="{ML}" y="{H - 12}" font-family="{FONT_SANS}" font-size="11" fill="#94A3B8">{esc(footer_left)}</text>'
+    )
+    lines.append(
+        f'<text x="{ML + PW}" y="{H - 12}" text-anchor="end" font-family="{FONT_MONO}" font-size="11" fill="#94A3B8">'
+        f'RTX PRO 6000 (96 GB GDDR7)</text>'
+    )
+    lines.append("</svg>")
+    return "\n".join(lines)
+
+
 def main() -> None:
     model_dir = Path(__file__).resolve().parents[1]
     results_dir = model_dir / "results"
@@ -430,6 +570,58 @@ def main() -> None:
         ("pareto_interactivity_vs_throughput", build_interactivity_pareto(metrics)),
         ("pareto_node_throughput_vs_e2e_p90", build_node_e2e_pareto(metrics)),
     ]
+
+    wl_metrics_path = results_dir / "metrics_1k8k_8k1k.json"
+    if wl_metrics_path.exists():
+        wlm = json.loads(wl_metrics_path.read_text(encoding="utf-8"))
+        charts.append((
+            "pareto_1k8k_interactivity_vs_throughput",
+            build_workload_pareto(
+                wlm["workloads"]["1k8k"],
+                title="Qwen3.8-27B on RTX PRO 6000 — 1k / 8k (Decode-Heavy) Pareto Frontier",
+                subtitle="Output Throughput per GPU vs. Interactivity (1000 / TPOT p50) · 1,024 ISL / 8,192 OSL Uncached · vLLM 0.34.0 · Dynamic MTP + Local Argmax + Rust",
+                accent="#0D9488",
+                x_max=620.0,
+                x_step=100,
+                y_max=4100.0,
+                y_step=500,
+                annotations=[
+                    (60.94, 3712.39,  24,  -12, "TP=1 Dyn-MTP c=64: 3,712 /GPU (29,699 on 8x!)", "#0F766E", "start"),
+                    (86.43, 2626.55,  22,  -14, "TP=1 c=32: 2,627 /GPU @ 86 tok/s/u", "#0D9488", "start"),
+                    (121.94, 1840.66, 26,  -22, "TP=2 c=32: 1,841 /GPU @ 122 tok/s/u", "#2563EB", "start"),
+                    (157.58, 1190.39, 20,  -18, "TP=4 c=32: 1,190 /GPU @ 158 tok/s/u", "#7C3AED", "start"),
+                    (265.46, 494.43,  16,  -38, "TP=8 c=16: 494 /GPU @ 265 tok/s/u", "#DC2626", "start"),
+                    (414.08, 102.11,  -8,  -56, "TP=4 c=1: 414 tok/s/u (19.9s E2E)", "#7C3AED", "end"),
+                    (544.37, 67.70,  -10, -108, "TP=8 c=1: 544 tok/s/u (15.2s E2E · 8.1× vs MTP-0)", "#DC2626", "end"),
+                    (32.83, 2081.96,   8,   28, "No MTP (2,082)", "#64748B", "start"),
+                ],
+                footer_left="Source: inference-recipes · Exact 1,024/8,192 uncached · Dynamic MTP + Local Argmax + Rust + Triton · 0 failed requests",
+            ),
+        ))
+        charts.append((
+            "pareto_8k1k_interactivity_vs_throughput",
+            build_workload_pareto(
+                wlm["workloads"]["8k1k"],
+                title="Qwen3.8-27B on RTX PRO 6000 — 8k / 1k (Prefill-Heavy) Pareto Frontier",
+                subtitle="Output Throughput per GPU vs. Interactivity (1000 / TPOT p50) · 8,192 ISL / 1,024 OSL Uncached · vLLM 0.34.0 · Dynamic MTP + Local Argmax + Rust",
+                accent="#7C3AED",
+                x_max=700.0,
+                x_step=100,
+                y_max=1200.0,
+                y_step=200,
+                annotations=[
+                    (53.63, 1072.93,  22,  -12, "TP=1 Dyn-MTP c=32: 1,073 /GPU (8,583 on 8x!)", "#0F766E", "start"),
+                    (159.36, 518.24,  20,  -26, "TP=1 c=4: 518 /GPU @ 159 tok/s/u", "#0D9488", "start"),
+                    (202.84, 183.51,   4,   54, "TP=1 c=1: 203 tok/s/u (566ms TTFT)", "#0D9488", "middle"),
+                    (322.58, 132.50,  16,  -88, "TP=2 c=1: 323 tok/s/u (3.79s E2E)", "#2563EB", "start"),
+                    (539.37, 102.15, -10,  -48, "TP=4 c=1: 539 tok/s/u (2.49s E2E)", "#7C3AED", "end"),
+                    (635.32, 58.45,  -10, -138, "TP=8 c=1: 635 tok/s/u (2.21s E2E · 1.57ms TPOT)", "#DC2626", "end"),
+                    (31.43, 777.26,    8,   34, "No MTP (777)", "#64748B", "start"),
+                ],
+                footer_left="Source: inference-recipes · Exact 8,192/1,024 uncached · DP=8 × TP=1 delivers 6.56× node capacity vs TP=8 · 0 failed requests",
+            ),
+        ))
+
     for stem, svg_str in charts:
         svg_path = results_dir / f"{stem}.svg"
         png_path = results_dir / f"{stem}.png"

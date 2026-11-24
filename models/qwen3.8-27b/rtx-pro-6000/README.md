@@ -9,17 +9,26 @@
 >   - **`TP=8` NVFP4 `MTP-4` + `qwen_g4_kernels` (`c=1`)**: **`310.64 out_tok/s`**, `TTFT 748.3 / 749.3 ms`, `TPOT 1.69 / 2.02 ms`, **`E2E 1.592s p50 / 1.758s p90`** (`c=4`: `503.68 tok/s`; `c=16`: `578.90 tok/s`).
 >   - **Bonus `1x` FP8 Win (`draft_lm_head_quantization: fp8` + `qwen_g4_kernels`)**: Lifts single-GPU FP8 `c=1` by **`+12.9%`** (`99.94 → 112.79 out_tok/s`) and cuts E2E p90 **`-12.1%`** (`5.59s → 4.91s`), breaking `< 5.0s` on 1 FP8 GPU (`59.85x` KV headroom).
 > - **8x GPU Architecture Winner (`DP=8 × TP=1`)**: Even after `PCIE_IPC + P2P=SYS + qwen_g4_kernels` rescues `TP=4` (`1,137.2` node tok/s) and `TP=8` (`578.9`), Data Parallelism across 8 GPUs still dominates cluster capacity: **`2,735.8 out_tok/s`** at `c=4/GPU` (`7.26s` p90) and **`4,019.2 out_tok/s`** (`4,106.9` with `mode=3`) at `c=16/GPU` (`4,172.4` at `c=24/GPU`) — **`3.61x`** over `DP=2 × TP=4 IPC+SYS` and **`7.09x`** over `TP=8 IPC+SYS`.
+> - **NEW — `1k/8k` (Decode-Heavy) & `8k/1k` (Prefill-Heavy) Dynamic MTP Hill-Climb (`237` verified runs, `5,782` requests, `0` failures)**: Stacking **Dynamic MTP** (`num_speculative_tokens_per_batch_size`: `K=6` at low batch → `K=3` at high batch), **`use_local_argmax_reduction=true`** (`+4.6%` to `+6.2%` on PCIe `TP=2/4/8` at `c=64`), **`VLLM_USE_RUST_FRONTEND=1`** (`vllm-rs`), **`NCCL_CUMEM_ENABLE=0`** (`-52%` CUDA Graph VRAM), and **`qwen_g4_kernels`** (`+10.2%` to `+15.2%` at `c=1` on `TP=4/8`) pushes **`TP=1` (`DP=8`)** to **`3,712 out_tok/s/GPU` (`29,699 node tok/s`)** on `1k/8k` (`+79.3%` over `MTP-0`) and **`1,073 out_tok/s/GPU` (`8,583 node tok/s`, `566 ms` TTFT)** on `8k/1k`, while **`TP=8`** reaches **`544 tok/s/user`** (`15.16s` E2E for 8,192 tokens, **`8.14x`** vs stock `TP=1`) on `1k/8k` and **`635 tok/s/user`** (`1.57 ms` TPOT, **`2.21s` E2E**) on `8k/1k` (see [Section 8](#8-1k8k-decode-heavy--8k1k-prefill-heavy-hill-climb-1--2--4--8-gpus)).
 
 ---
 
 
 ## Pareto Frontier Charts
 
+### `10k / 500` (Long-Context Enterprise Reactivity)
+
 ![Qwen3.8-27B on RTX PRO 6000 — Interactivity vs Throughput per GPU](results/pareto_interactivity_vs_throughput.png)
 
 ![Qwen3.8-27B on 8x RTX PRO 6000 — Node Throughput vs E2E Latency p90](results/pareto_node_throughput_vs_e2e_p90.png)
 
-*Charts are reproducibly generated from [`results/metrics.json`](results/metrics.json) via `python3 scripts/generate_charts.py`.*
+### `1k / 8k` (Decode-Heavy Reasoning) & `8k / 1k` (Prefill-Heavy RAG)
+
+![Qwen3.8-27B on RTX PRO 6000 — 1k / 8k Decode-Heavy Pareto Frontier](results/pareto_1k8k_interactivity_vs_throughput.png)
+
+![Qwen3.8-27B on RTX PRO 6000 — 8k / 1k Prefill-Heavy Pareto Frontier](results/pareto_8k1k_interactivity_vs_throughput.png)
+
+*Charts are reproducibly generated from [`results/metrics.json`](results/metrics.json) and [`results/metrics_1k8k_8k1k.json`](results/metrics_1k8k_8k1k.json) via `python3 scripts/generate_charts.py`.*
 
 ## Quick-Pick Recipes
 
@@ -27,13 +36,17 @@ Runnable `serve.sh`, `deploy-gke.yaml`, and `metadata.yaml` bundles for each tie
 
 | Recipe | Topology | Quant & Stack | Best For |
 |---|---|---|---|
-| [`tp1-vllm-nvfp4-mtp4`](recipes/tp1-vllm-nvfp4-mtp4/) | `DP=8 × TP=1` | NVFP4 + MTP-4 (`bf16` SSM, `bt=4096`) | **Default production** — balanced latency & cluster capacity (`4,019–4,172 tok/s` node) |
-| [`tp1-vllm-nvfp4-mtp4-mode3`](recipes/tp1-vllm-nvfp4-mtp4-mode3/) | `DP=8 × TP=1` | NVFP4 + MTP-4 + `torch.compile mode=3` + Extensible KV | **Peak batch throughput & max KV headroom** (`4,107 tok/s` @ `c=16`, `533.9x` 16k slots) |
+| [`tp1-vllm-nvfp4-dyn-mtp`](recipes/tp1-vllm-nvfp4-dyn-mtp/) | `DP=8 × TP=1` | NVFP4 + **Dynamic MTP `6/3`** + **Rust frontend** + Extensible KV | **Max `1k/8k` & `8k/1k` throughput / `$/tok`** (`29,699 tok/s` node on `1k/8k`, `8,583 tok/s` on `8k/1k`) |
+| [`tp2-vllm-nvfp4-dyn-mtp`](recipes/tp2-vllm-nvfp4-dyn-mtp/) | `DP=4 × TP=2` (`PIX`) | NVFP4 + **Dynamic MTP `6/4/3`** + **Local Argmax** + Rust + `PCIE_IPC` + `CUMEM=0` | **Balanced PCIe-switch `1k/8k` & `8k/1k`** (`277–332 tok/s/u` @ `c=1`, `19,492 tok/s` node) |
+| [`tp4-vllm-nvfp4-dyn-mtp`](recipes/tp4-vllm-nvfp4-dyn-mtp/) | `DP=2 × TP=4` (`NODE`) | NVFP4 + **Dynamic MTP `6/4/3`** + **Local Argmax** + Rust + `PCIE_IPC` + `qwen_g4_kernels` | **Fast intra-socket reasoning/RAG** (`414–539 tok/s/u` @ `c=1`, `11,720 tok/s` node) |
+| [`tp8-vllm-nvfp4-dyn-mtp`](recipes/tp8-vllm-nvfp4-dyn-mtp/) | `1 × TP=8` (`SYS`) | NVFP4 + **Dynamic MTP `6/4/3`** + **Local Argmax** + Rust + `PCIE_IPC` + `qwen_g4_kernels` | **Peak reasoning/RAG interactivity** (`544 tok/s/u` / `15.2s` on `1k/8k`, `635 tok/s/u` / `2.21s` on `8k/1k`) |
+| [`tp1-vllm-nvfp4-mtp4`](recipes/tp1-vllm-nvfp4-mtp4/) | `DP=8 × TP=1` | NVFP4 + MTP-4 (`bf16` SSM, `bt=4096`) | **Default `10k/500` production** — balanced latency & cluster capacity (`4,019–4,172 tok/s` node) |
+| [`tp1-vllm-nvfp4-mtp4-mode3`](recipes/tp1-vllm-nvfp4-mtp4-mode3/) | `DP=8 × TP=1` | NVFP4 + MTP-4 + `torch.compile mode=3` + Extensible KV | **Peak `10k/500` batch throughput & max KV headroom** (`4,107 tok/s` @ `c=16`, `533.9x` 16k slots) |
 | [`tp1-vllm-fp8-mtp4`](recipes/tp1-vllm-fp8-mtp4/) | `DP=8 × TP=1` | FP8 + MTP-4 + FP8 draft `lm_head` + `qwen_g4_kernels` | **FP8 fallback** (`< 5.0s` E2E p90 on 1 GPU, `59.85x` KV headroom) |
-| [`tp2-vllm-nvfp4-mtp4`](recipes/tp2-vllm-nvfp4-mtp4/) | `DP=4 × TP=2` (`PIX`) | NVFP4 + MTP-4 + `PCIE_IPC` + `P2P=SYS` | **Snappy interactive** (`2.62s` p90 @ `c=1`, `2,102 tok/s` node peak) |
-| [`tp4-vllm-nvfp4-mtp4`](recipes/tp4-vllm-nvfp4-mtp4/) | `DP=2 × TP=4` | NVFP4 + MTP-4 + `PCIE_IPC` + `P2P=SYS` | **Ultra-low latency** (`2.13s` p90 @ `c=1`, `1,137 tok/s` node peak) |
-| [`tp8-vllm-nvfp4-mtp4`](recipes/tp8-vllm-nvfp4-mtp4/) | `1 × TP=8` | NVFP4 + MTP-4 + `PCIE_IPC` + `P2P=SYS` + `qwen_g4_kernels` | **Strict `< 2.0s` p90** (`1.76s` p90 @ `c=1`, `310.6 tok/s`) |
-| [`tp8-vllm-nvfp4-mtp5`](recipes/tp8-vllm-nvfp4-mtp5/) | `1 × TP=8` | NVFP4 + MTP-5 + `PCIE_IPC` + `P2P=SYS` + `qwen_g4_kernels` | **Fastest single-stream** (`1.65s` p90 @ `c=1`, `330.0 tok/s`) |
+| [`tp2-vllm-nvfp4-mtp4`](recipes/tp2-vllm-nvfp4-mtp4/) | `DP=4 × TP=2` (`PIX`) | NVFP4 + MTP-4 + `PCIE_IPC` + `P2P=SYS` | **Snappy `10k/500` interactive** (`2.62s` p90 @ `c=1`, `2,102 tok/s` node peak) |
+| [`tp4-vllm-nvfp4-mtp4`](recipes/tp4-vllm-nvfp4-mtp4/) | `DP=2 × TP=4` | NVFP4 + MTP-4 + `PCIE_IPC` + `P2P=SYS` | **Ultra-low `10k/500` latency** (`2.13s` p90 @ `c=1`, `1,137 tok/s` node peak) |
+| [`tp8-vllm-nvfp4-mtp4`](recipes/tp8-vllm-nvfp4-mtp4/) | `1 × TP=8` | NVFP4 + MTP-4 + `PCIE_IPC` + `P2P=SYS` + `qwen_g4_kernels` | **Strict `< 2.0s` `10k/500` p90** (`1.76s` p90 @ `c=1`, `310.6 tok/s`) |
+| [`tp8-vllm-nvfp4-mtp5`](recipes/tp8-vllm-nvfp4-mtp5/) | `1 × TP=8` | NVFP4 + MTP-5 + `PCIE_IPC` + `P2P=SYS` + `qwen_g4_kernels` | **Fastest `10k/500` single-stream** (`1.65s` p90 @ `c=1`, `330.0 tok/s`) |
 
 ---
 
@@ -496,3 +509,92 @@ spec:
 > - **`1x` FP8 Fallback Override**: If serving `Qwen/Qwen3.8-27B-FP8`, pass `--speculative-config={"method":"mtp","num_speculative_tokens":4,"draft_lm_head_quantization":"fp8"}`, omit `--gpu-memory-utilization=0.90`, and install `qwen_g4_kernels` (`jawadaminGOOG/g4-recipes`) for **`+12.9%`** faster `c=1` (`112.79 out_tok/s`, **`4.91s`** E2E p90, `59.85x` KV headroom).
 > - **Option B (`DP=4 × TP=2` Balanced Low-Latency Mode)**: Set `replicas: 4`, `nvidia.com/gpu: "2"`, `--tensor-parallel-size=2`, `--gpu-memory-utilization=0.85`, `dshm.sizeLimit: 32Gi`, and export **`VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=1`** + **`NCCL_P2P_LEVEL=SYS`**. Delivers **`2.36s p50 / 2.62s p90`** idle E2E (`2.29s / 2.66s` at `211.2 tok/s` with `qwen_g4_kernels`) and **`828.4–2,102.3 out_tok/s`** across 8 GPUs.
 > - **Option C (`TP=8` Strict `< 2.0s` p90 or `DP=2 × TP=4` `~2.1s` p90 Mode)**: **ALWAYS export BOTH `VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=1` and `NCCL_P2P_LEVEL=SYS`** with `--gpu-memory-utilization=0.85` (leaving headroom for FlashInfer's late-allocating IPC workspace), keep default Breakable CUDA Graphs (`norm_quant` fusion intact), and **`pip install` `qwen_g4_kernels`** (`jawadaminGOOG/g4-recipes/plugins/qwen_g4_kernels`) on `TP=8` for the skinny Triton `in_proj_ba` GEMM. Delivers **`1.49s p50 / 1.65s p90`** (`MTP-5`, **`330.0 tok/s`**, `352 ms` under `2.0s`) or **`1.59s p50 / 1.76s p90`** (`MTP-4`, **`310.6 tok/s`**) on `TP=8`, and **`1.88s p50 / 2.13s p90`** (`517.3–1,137.2 tok/s` node) on `DP=2 × TP=4`. Do not deploy `TP=4`/`TP=8` for throughput-bound fleets (`DP=8 × TP=1` yields **`3.6x–7.1x`** higher node capacity).
+
+
+---
+
+## 8. `1k/8k` (Decode-Heavy) & `8k/1k` (Prefill-Heavy) Hill-Climb (`1 / 2 / 4 / 8` GPUs)
+
+To characterize Qwen3.8-27B beyond the `10k/500` enterprise workload, we ran a systematic single-lever hill-climb across **`1 / 2 / 4 / 8× NVIDIA RTX PRO 6000 Blackwell`** (`vllm/vllm-openai:v0.34.0`, `nvidia/Qwen3.8-27B-NVFP4`) on two canonical extreme shapes:
+- **`1k / 8k` (Decode-Heavy Reasoning)**: exact `1,024` input tokens / `8,192` output tokens (`--no-enable-prefix-caching`, `ignore_eos=True`, `min_tokens=max_tokens`, `temperature=0.0`).
+- **`8k / 1k` (Prefill-Heavy RAG)**: exact `8,192` input tokens / `1,024` output tokens (`--no-enable-prefix-caching`, `ignore_eos=True`, `min_tokens=max_tokens`, `temperature=0.0`).
+
+All **237 timed runs (`5,782` requests)** completed with **`0` failed requests** and exact token counts (`1024/8192` and `8192/1024`), distilled in [`results/metrics_1k8k_8k1k.json`](results/metrics_1k8k_8k1k.json).
+
+### 8.1 Four High-Impact Levers Proven in `vLLM 0.34.0`
+
+1. **Dynamic Speculative Decoding (`num_speculative_tokens_per_batch_size`)**:
+   - Single-lever `MTP-K` sweeps (`K ∈ {0, 2, 3, 4, 5, 6, 7, 8}`) exposed a clean hardware crossover: low concurrency (`c=1..16` on `TP=1`, `c=1..4` on `TP >= 2`) peaks at **`K=6`** (`+17.3%` on `1k/8k c=1` vs static `MTP-4`), while high concurrency (`c=32..96`) peaks at **`K=3`** (`+14.6%` over `MTP-4`, `+41.3%` over `MTP-8`, and **`+79.3%`** over stock `MTP-0` at `1k/8k c=64`).
+   - One server running `[[1,16,6],[17,256,3]]` (`TP=1`) or `[[1,4,6],[5,16,4],[17,256,3]]` (`TP >= 2`) automatically hits **both** ends of the Pareto curve (`K` switching verified via Prometheus draft-token deltas).
+2. **`use_local_argmax_reduction: true` (PCIe Multi-GPU Breakthrough)**:
+   - Supported natively by `Qwen3_5MTP.get_top_tokens()` in `vLLM 0.34.0`. Replaces the per-draft-step `O(vocab_size = 248,320)` PCIe AllGather (`31.8 MB` at `c=64` × 3–6 draft steps/decode step) with an `O(2 * TP)` scalar reduction (`16–64 bytes`).
+   - Pure single-lever uplift at `1k/8k c=64`: **`+4.6%` (`TP=2`)**, **`+6.0%` (`TP=4`)**, and **`+6.2%` (`TP=8`)**.
+3. **`QWEN_G4_SKINNY_BA=1` (`qwen_g4_kernels` Triton `in_proj_ba` GEMM)**:
+   - At `c=1` with `MTP-6` (`M = 7 <= MAX_M (8)`), `in_proj_ba` (`N = 96 / TP` rows across 48 GDN layers) enters cuBLAS SM120's slow WMMA regime as `N` narrows: **skip on `TP=1` (`N=96`)**, enable on **`TP >= 2`** for **`+7.1%` (`TP=2`)**, **`+10.2% / +14.5%` (`TP=4`, `-15.4%` ms/step)**, and **`+15.2% / +13.5%` (`TP=8`, `-12.8%` to `-13.3%` ms/step)**.
+4. **`VLLM_USE_RUST_FRONTEND=1` (`vllm-rs` Tokio HTTP Frontend) + `NCCL_CUMEM_ENABLE=0`**:
+   - Eliminates Python/uvicorn SSE streaming jitter on `8,192`-token decode bursts (`+4.2%` on `TP=1` `1k/8k c=8`, `+4.4%` throughput / `+14.3%` interactivity on `8k/1k c=8`, `-4.0%` to `-6.3%` lower `TPOT`/`TTFT` at `c=32`).
+   - Controlled 2×2 `NCCL_CUMEM_ENABLE ∈ {0, 1}` × `VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC ∈ {0, 1}` testing confirmed **`NCCL_CUMEM_ENABLE=0` + `PCIE_IPC=1` + `NCCL_P2P_LEVEL=SYS`** preserves peak `TP=8` performance while cutting CUDA Graph VRAM capture in half (`3.73 → 1.80 GiB`).
+
+### 8.2 Single-Lever Attribution (`TP=1` & `TP=2/4/8`)
+
+#### `TP=1` Single-Lever Sweep (`16` Configurations vs `r0_tp1_base` Static `MTP-4`, `bt=4096`)
+
+| Round | Single-Lever Change | `8k/1k c=1` | `8k/1k c=8` | `8k/1k c=16` | `8k/1k c=32` | `1k/8k c=1` | `1k/8k c=8` | `1k/8k c=32` | `1k/8k c=64` | Verdict |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| `r11_nomtp` | Stock `MTP-0` (no spec decode) | 64.0 | 379.4 | 584.9 | 777.3 | 66.4 | — | 1,421.8 | 2,082.0 | Reference |
+| `r10_mtp2` | Static `MTP-2` | 135.3 | 630.4 | 884.2 | 1,024.5 | 139.3 | — | 2,432.1 | 3,556.2 | Below `K=3` |
+| `r3_mtp3` | Static `MTP-3` | 157.5 | 689.5 | 916.4 | — | 153.7 | 1,021.0 | **2,628.2** | — | **KEEP `c >= 17`** |
+| `r0_base` | **Anchor (`MTP-4`, `bt=4096`, `GDN=cuda`)** | **170.4** | **706.9** | **925.5** | — | **175.2** | **1,062.2** | **2,537.7** | — | Anchor |
+| `r1_mtp5` | Static `MTP-5` | 175.0 | 708.9 | 907.2 | — | 175.6 | 1,040.0 | 2,554.7 | — | Beaten by `6/3` |
+| `r2_mtp6` | Static `MTP-6` | 183.6 | 739.3 | **947.6** | — | **205.6** | 1,058.5 | 2,485.0 | — | **KEEP `c <= 16`** |
+| `r8_mtp7` | Static `MTP-7` | **188.2** | 725.6 | 945.2 | 1,052.0 | 178.6 | — | 2,384.8 | 2,991.7 | Hurts `1k/8k` |
+| `r9_mtp8` | Static `MTP-8` | 187.7 | 673.5 | 893.4 | 985.4 | 166.7 | — | 2,062.7 | 2,641.2 | REJECT (bloat) |
+| `r4_mode3` | `BREAKABLE_CG=0` + `mode=3` | 170.7 | 705.1 | 910.5 | — | 171.8 | 1,070.3 | 2,570.2 | — | REJECT |
+| `r5_bt8192` | `--max-num-batched-tokens 8192` | 175.1 | 693.0 | 884.8 | — | 168.7 | 1,091.5 | 2,589.7 | — | REJECT (`-4.4%` `8k/1k c=16`) |
+| `r6_gdn_triton` | `VLLM_GDN_DECODE_KERNEL=triton` | 165.5 | 719.3 | 909.7 | — | 163.7 | 1,056.7 | 2,571.7 | — | REJECT (`-6.6%` `c=1`) |
+| `r7_rust` | `VLLM_USE_RUST_FRONTEND=1` | 170.6 | 706.1 | 915.4 | — | 175.3 | **1,106.7** | 2,565.1 | — | **KEEP** |
+| `r12_dyn_a` | Dynamic `[[1,8,6],[9,16,4],[17,256,3]]` | 183.4 | 735.9 | 913.0 | 1,078.2 | 196.6 | — | 2,623.1 | **3,732.5** | **KEEP** |
+| `r15_dyn_rust` | Dynamic A + `VLLM_USE_RUST_FRONTEND=1` | 183.5 | **768.6** | 920.7 | 1,074.6 | 196.5 | — | 2,610.7 | 3,699.6 | **KEEP** |
+| `r16_triton` | `+ QWEN_G4_SKINNY_BA=1` (spot check) | 177.4 | 710.3 | — | — | 162.5 | — | — | — | **REJECT on `TP=1`** |
+
+#### Multi-GPU Progressive Single-Lever Ladder (`TP=2`, `TP=4`, `TP=8` — `out_tok/s`)
+
+| TP | Round & Added Lever | `8k/1k c=1` | `8k/1k c=8` | `8k/1k c=32` | `1k/8k c=1` | `1k/8k c=8` | `1k/8k c=32` | `1k/8k c=64` |
+| :-: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **2** | `r0_base` (`MTP-4`, `PCIE_IPC=1`, `CUMEM=0`) | 255.5 | 846.9 | 1,144.7 | 258.4 | 1,570.0 | 3,354.8 | 4,040.8 |
+| **2** | `r1_dyn_rust` (`+ Dynamic MTP + Rust`) | **274.3 (+7.3%)** | 842.2 (-0.5%) | 1,153.7 (+0.8%) | 258.3 (-0.0%) | 1,522.3 (-3.0%) | 3,577.1 (+6.6%) | 4,639.7 (+14.8%) |
+| **2** | `r2_local_argmax` (`+ use_local_argmax_reduction`) | 272.6 (-0.6%) | 867.9 (+3.1%) | **1,158.4 (+0.4%)** | 256.5 (-0.7%) | 1,529.8 (+0.5%) | 3,629.2 (+1.5%) | **4,850.9 (+4.6% / +20.0% tot)** |
+| **2** | `r3_triton` (`+ QWEN_G4_SKINNY_BA=1`) | 265.0 (-2.8%) | **883.0 (+1.7%)** | 1,155.0 (-0.3%) | **274.8 (+7.1%)** | 1,525.5 (-0.3%) | **3,681.3 (+1.4%)** | 4,816.1 (-0.7%) |
+| **4** | `r0_base` (`MTP-4`, `PCIE_IPC=1`, `CUMEM=0`) | 322.4 | 971.9 | 1,239.8 | 356.5 | 2,262.0 | 4,159.6 | 4,786.1 |
+| **4** | `r1_dyn_rust` (`+ Dynamic MTP + Rust`) | 357.5 (+10.9%) | 1,023.8 (+5.3%) | 1,264.9 (+2.0%) | 372.0 (+4.4%) | 2,176.3 (-3.8%) | 4,557.6 (+9.6%) | 5,246.9 (+9.6%) |
+| **4** | `r2_local_argmax` (`+ use_local_argmax_reduction`) | 356.9 (-0.2%) | 1,027.5 (+0.4%) | **1,274.8 (+0.8%)** | 370.8 (-0.3%) | 2,193.4 (+0.8%) | 4,734.4 (+3.9%) | 5,562.0 (+6.0% / +16.2% tot) |
+| **4** | `r3_triton_champ` (`+ QWEN_G4_SKINNY_BA=1`) | **408.6 (+14.5% / +26.8% tot)** | **1,046.8 (+1.9%)** | 1,265.0 (-0.8%) | **408.4 (+10.2% / +14.6% tot)** | 2,196.1 (+0.1%) | **4,761.6 (+0.6%)** | **5,590.5 (+0.5% / +16.8% tot)** |
+| **8** | `r0_base` (`MTP-4`, `PCIE_IPC=1`, `CUMEM=0`) | 374.6 | 1,080.3 | 1,277.2 | 439.1 | 2,678.2 | 4,439.1 | 5,156.4 |
+| **8** | `r1_dyn_rust` (`+ Dyn MTP [1..4:6, 5..16:4, 17+:3] + Rust`) | 417.9 (+11.6%) | 1,080.9 (+0.1%) | 1,282.2 (+0.4%) | 467.2 (+6.4%) | 2,697.7 (+0.7%) | 4,870.4 (+9.7%) | 5,548.2 (+7.6%) |
+| **8** | `r2_local_argmax` (`+ use_local_argmax_reduction`) | 412.0 (-1.4%) | 1,113.3 (+3.0%) | 1,299.6 (+1.4%) | 470.0 (+0.6%) | **2,738.6 (+1.5%)** | 5,128.1 (+5.3%) | 5,893.8 (+6.2% / +14.3% tot) |
+| **8** | `r3_triton_champ` (`+ QWEN_G4_SKINNY_BA=1`) | **467.6 (+13.5% / +24.8% tot)** | **1,113.5 (+0.0%)** | **1,309.2 (+0.7%)** | **541.6 (+15.2% / +23.3% tot)** | 2,728.4 (-0.4%) | **5,163.1 (+0.7%)** | **5,964.3 (+1.2% / +15.7% tot)** |
+
+### 8.3 Champion Pareto Summary (`1k/8k` & `8k/1k` — `1 / 2 / 4 / 8` GPUs)
+
+#### `1k / 8k` (Decode-Heavy Reasoning)
+
+| Topology | `c=1` Interactivity (`E2E p50/p90`) | `c=8` `out_tok/s` (`tok/s/u`) | `c=32` `out_tok/s` (`tok/s/u`) | Peak Replica `out_tok/s` (`c`) | Peak Per-GPU `out_tok/s` | Peak 8-GPU Node (`DP×TP`) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **`TP=1`** (`DP=8`, solo) | **`195.7 tok/s/u`** (`41.96 / 46.19s`) | 1,041.2 (`136.8`) | 2,626.6 (`86.5`) | **3,712.4** (`c=64`, `0` preempts) | **3,712.4** | **29,699** |
+| **`TP=2` `PIX`** (`DP=4`) | **`277.1 tok/s/u`** (`29.66 / 30.35s`) | 1,529.8 (`202.6`) | 3,681.3 (`121.9`) | **4,873.0** (`c=96`) | **2,436.5** | **19,492** |
+| **`TP=4` `NODE`** (`DP=2`) | **`414.1 tok/s/u`** (`19.87 / 20.49s`) | 2,196.1 (`291.3`) | 4,761.6 (`157.6`) | **5,860.0** (`c=96`) | **1,465.0** | **11,720** |
+| **`TP=8` `SYS`** (`DP=1`) | **`544.4 tok/s/u`** (`15.16 / 16.00s`) | 2,728.4 (`354.7`) | 5,163.1 (`169.8`) | **6,358.8** (`c=96`) | **794.9** | **6,359** |
+
+#### `8k / 1k` (Prefill-Heavy RAG)
+
+| Topology | `c=1` Interactivity (`TTFT p50` / `E2E p50/p90`) | `c=4` `out_tok/s` (`tok/s/u`) | `c=8` `out_tok/s` (`tok/s/u`) | `c=16` `out_tok/s` (`tok/s/u`) | `c=32` Replica / Per-GPU / 8-GPU Node |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **`TP=1`** (`DP=8`, solo) | **`202.8 tok/s/u`** (**`565.7 ms`** / `5.61 / 5.78s`) | 518.2 (`159.4`) | 721.0 (`113.6`) | 902.0 (`72.8`) | **1,072.9** / **1,072.9** / **8,583** |
+| **`TP=2` `PIX`** (`DP=4`) | **`332.4 tok/s/u`** (`609.9 ms` / `3.69 / 4.00s`) | 692.0 (`206.1`) | 883.0 (`154.0`) | 1,056.7 (`84.4`) | **1,158.4** / **579.2** / **4,634** |
+| **`TP=4` `NODE`** (`DP=2`) | **`539.4 tok/s/u`** (`598.3 ms` / `2.49 / 2.58s`) | 840.2 (`272.3`) | 1,046.8 (`183.2`) | 1,171.6 (`94.7`) | **1,274.8** / **318.7** / **2,550** |
+| **`TP=8` `SYS`** (`DP=1`) | **`635.3 tok/s/u`** (`601.1 ms` / **`2.21 / 2.28s`**) | 920.4 (`298.6`) | 1,113.5 (`180.6`) | 1,219.7 (`99.5`) | **1,309.2** / **163.7** / **1,309** |
+
+> [!TIP]
+> **Choosing `TP` on PCIe Gen5 G4 Across Workloads**:
+> - **Prefill-heavy (`8k/1k`, `10k/500`)**: `8k` prefill over PCIe (`128` AllReduces of `[4096, 5120]` BF16 = `40 MB` each) keeps `c=1` TTFT flat at `566–601 ms` across `TP=1..8`. **`DP=8 × TP=1`** wins both cluster throughput (**`6.56x`** vs `TP=8` on `8k/1k`) AND lowest `c=1` TTFT (`566 ms`). Scale to `TP=4`/`TP=8` only when `< 2.5s` E2E latency is required.
+> - **Decode-heavy (`1k/8k`)**: Tiny `[7, 5120]` decode activations stay inside `FLASHINFER_PCIE_IPC`'s fast path, so every `TP` tier claims a clean Pareto band: **`DP=8 × TP=1`** (`< 150 tok/s/u`, up to `29,699 node tok/s`), **`DP=4 × TP=2`** (`150–250 tok/s/u`), **`DP=2 × TP=4`** (`250–400 tok/s/u`), and **`1 × TP=8`** (`400–544 tok/s/u`, `15.2s` E2E for 8,192 tokens).

@@ -4,10 +4,14 @@
 
 ## Recipes
 - Qwen3.8-27B on rtx-pro-6000 (DP=8 x TP=1, vLLM 0.34.0 FP8): c=1 E2E p90=4.91s, Peak=2,550.3 tok/s (DP=8 @ c=8/GPU) [https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp1-vllm-fp8-mtp4]
+- Qwen3.8-27B on rtx-pro-6000 (DP=8 x TP=1, vLLM 0.34.0 NVFP4): c=1 E2E p90=46.19s, Peak=29,699.1 tok/s (DP=8 @ c=64/GPU) [https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp1-vllm-nvfp4-dyn-mtp]
 - Qwen3.8-27B on rtx-pro-6000 (DP=8 x TP=1, vLLM 0.34.0 NVFP4): c=1 E2E p90=3.75s, Peak=4,106.9 tok/s (DP=8 @ c=16/GPU) [https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp1-vllm-nvfp4-mtp4-mode3]
 - Qwen3.8-27B on rtx-pro-6000 (DP=8 x TP=1, vLLM 0.34.0 NVFP4): c=1 E2E p90=3.86s, Peak=4,172.4 tok/s (DP=8 @ c=24/GPU) [https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp1-vllm-nvfp4-mtp4]
+- Qwen3.8-27B on rtx-pro-6000 (DP=4 x TP=2 (PIX), vLLM 0.34.0 NVFP4): c=1 E2E p90=30.35s, Peak=19,491.9 tok/s (DP=4 @ c=96/rep) [https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp2-vllm-nvfp4-dyn-mtp]
 - Qwen3.8-27B on rtx-pro-6000 (DP=4 x TP=2, vLLM 0.34.0 NVFP4): c=1 E2E p90=2.62s, Peak=2,090.9 tok/s (DP=4 @ c=16/rep) [https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp2-vllm-nvfp4-mtp4]
+- Qwen3.8-27B on rtx-pro-6000 (DP=2 x TP=4 (NODE), vLLM 0.34.0 NVFP4): c=1 E2E p90=20.49s, Peak=11,719.9 tok/s (DP=2 @ c=96/rep) [https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp4-vllm-nvfp4-dyn-mtp]
 - Qwen3.8-27B on rtx-pro-6000 (DP=2 x TP=4, vLLM 0.34.0 NVFP4): c=1 E2E p90=2.13s, Peak=1,137.2 tok/s (DP=2 @ c=16/rep) [https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp4-vllm-nvfp4-mtp4]
+- Qwen3.8-27B on rtx-pro-6000 (1 x TP=8, vLLM 0.34.0 NVFP4): c=1 E2E p90=16.0s, Peak=6,358.8 tok/s (TP=8 @ c=96) [https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp8-vllm-nvfp4-dyn-mtp]
 - Qwen3.8-27B on rtx-pro-6000 (1 x TP=8, vLLM 0.34.0 NVFP4): c=1 E2E p90=1.76s, Peak=578.9 tok/s (TP=8 @ c=16) [https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp8-vllm-nvfp4-mtp4]
 - Qwen3.8-27B on rtx-pro-6000 (1 x TP=8, vLLM 0.34.0 NVFP4): c=1 E2E p90=1.65s, Peak=400.5 tok/s (TP=8 @ c=2) [https://github.com/kkr16/inference-recipes/tree/main/models/qwen3.8-27b/rtx-pro-6000/recipes/tp8-vllm-nvfp4-mtp5]
 

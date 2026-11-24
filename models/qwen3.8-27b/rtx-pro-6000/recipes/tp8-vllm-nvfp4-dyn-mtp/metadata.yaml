@@ -1,0 +1,15 @@
+model: Qwen3.8-27B
+checkpoint: nvidia/Qwen3.8-27B-NVFP4
+hardware: rtx-pro-6000
+cloud_instance: gcp-g4-standard-384
+topology: 1 x TP=8
+engine: vLLM
+engine_version: "0.34.0"
+quantization: NVFP4
+features: [Dyn-MTP-6/4/3, Local-Argmax, Rust-Frontend, PCIE_IPC, CUMEM=0, qwen_g4_kernels]
+workload: "1k/8k (uncached)"
+date: "2026-11-24"
+metrics:
+  c1_e2e_p90_s: 16.0
+  peak_out_tok_s: "6,358.8"
+  peak_load: "TP=8 @ c=96"

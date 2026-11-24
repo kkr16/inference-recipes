@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwen38-27b-nvfp4-tp4-dyn-mtp
+  namespace: default
+  labels:
+    app: qwen38-27b-nvfp4-tp4-dyn-mtp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: qwen38-27b-nvfp4-tp4-dyn-mtp
+  template:
+    metadata:
+      labels:
+        app: qwen38-27b-nvfp4-tp4-dyn-mtp
+    spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Equal
+          value: present
+          effect: NoSchedule
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-rtx-pro-6000
+      containers:
+        - name: vllm
+          # NOTE: Build/use an image with qwen_g4_kernels pre-installed, or install via initContainer/command.
+          image: vllm/vllm-openai:v0.34.0
+          args:
+            - nvidia/Qwen3.8-27B-NVFP4
+            - --host=0.0.0.0
+            - --port=8000
+            - --trust-remote-code
+            - --language-model-only
+            - --tensor-parallel-size=4
+            - --gpu-memory-utilization=0.85
+            - --max-model-len=16384
+            - --kv-cache-dtype=fp8
+            - --mamba-ssm-cache-dtype=bfloat16
+            - --max-num-batched-tokens=4096
+            - --max-num-seqs=256
+            - '--speculative-config={"method":"qwen3_next_mtp","num_speculative_tokens":6,"num_speculative_tokens_per_batch_size":[[1,4,6],[5,16,4],[17,256,3]],"use_local_argmax_reduction":true}'
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: HF_HOME
+              value: "/hf-cache"
+            - name: HF_XET_HIGH_PERFORMANCE
+              value: "1"
+            - name: NCCL_P2P_LEVEL
+              value: "SYS"
+            - name: NCCL_CUMEM_ENABLE
+              value: "0"
+            - name: VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC
+              value: "1"
+            - name: VLLM_FLASHINFER_AUTOTUNE_CACHE_DIR
+              value: "/hf-cache/flashinfer_autotune_cache"
+            - name: VLLM_USE_RUST_FRONTEND
+              value: "1"
+            - name: QWEN_G4_SKINNY_BA
+              value: "1"
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token
+                  key: token
+          resources:
+            requests:
+              cpu: "64"
+              memory: "320Gi"
+              nvidia.com/gpu: "4"
+            limits:
+              cpu: "128"
+              memory: "512Gi"
+              nvidia.com/gpu: "4"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 45
+            periodSeconds: 10
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: hf-cache
+              mountPath: /hf-cache
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Gi
+        - name: hf-cache
+          hostPath:
+            path: /mnt/stateful_partition/kube-ephemeral-ssd/hf-cache
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen38-27b-nvfp4-tp4-dyn-mtp-svc
+  namespace: default
+spec:
+  selector:
+    app: qwen38-27b-nvfp4-tp4-dyn-mtp
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000

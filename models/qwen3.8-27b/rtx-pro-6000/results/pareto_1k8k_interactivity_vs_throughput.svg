@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="740" viewBox="0 0 1240 740">
+<rect width="100%" height="100%" fill="#FFFFFF"/>
+<rect x="0" y="0" width="1240" height="5" fill="#0D9488"/>
+<rect x="92" y="118" width="1106" height="530" fill="#FAFBFD" stroke="#E2E8F0" stroke-width="1"/>
+<text x="92" y="48" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="25" font-weight="700" fill="#0F172A">Qwen3.8-27B on RTX PRO 6000 — 1k / 8k (Decode-Heavy) Pareto Frontier</text>
+<text x="92" y="74" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="14" fill="#475569">Output Throughput per GPU vs. Interactivity (1000 / TPOT p50) · 1,024 ISL / 8,192 OSL Uncached · vLLM 0.34.0 · Dynamic MTP + Local Argmax + Rust</text>
+<rect x="1064" y="130" width="122" height="28" rx="14" fill="#ECFDF5" stroke="#A7F3D0" stroke-width="1"/><text x="1125" y="149" text-anchor="middle" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="12.5" font-weight="700" fill="#047857">Better  ↗</text>
+<line x1="92.0" y1="118" x2="92.0" y2="648" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="92.0" y="672" text-anchor="middle" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="12" fill="#475569">0</text>
+<line x1="270.4" y1="118" x2="270.4" y2="648" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="270.4" y="672" text-anchor="middle" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="12" fill="#475569">100</text>
+<line x1="448.8" y1="118" x2="448.8" y2="648" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="448.8" y="672" text-anchor="middle" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="12" fill="#475569">200</text>
+<line x1="627.2" y1="118" x2="627.2" y2="648" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="627.2" y="672" text-anchor="middle" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="12" fill="#475569">300</text>
+<line x1="805.5" y1="118" x2="805.5" y2="648" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="805.5" y="672" text-anchor="middle" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="12" fill="#475569">400</text>
+<line x1="983.9" y1="118" x2="983.9" y2="648" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="983.9" y="672" text-anchor="middle" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="12" fill="#475569">500</text>
+<line x1="1162.3" y1="118" x2="1162.3" y2="648" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="1162.3" y="672" text-anchor="middle" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="12" fill="#475569">600</text>
+<line x1="92" y1="648.0" x2="1198" y2="648.0" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="80" y="652.0" text-anchor="end" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="12" fill="#475569">0</text>
+<line x1="92" y1="583.4" x2="1198" y2="583.4" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="80" y="587.4" text-anchor="end" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="12" fill="#475569">500</text>
+<line x1="92" y1="518.7" x2="1198" y2="518.7" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="80" y="522.7" text-anchor="end" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="12" fill="#475569">1,000</text>
+<line x1="92" y1="454.1" x2="1198" y2="454.1" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="80" y="458.1" text-anchor="end" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="12" fill="#475569">1,500</text>
+<line x1="92" y1="389.5" x2="1198" y2="389.5" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="80" y="393.5" text-anchor="end" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="12" fill="#475569">2,000</text>
+<line x1="92" y1="324.8" x2="1198" y2="324.8" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="80" y="328.8" text-anchor="end" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="12" fill="#475569">2,500</text>
+<line x1="92" y1="260.2" x2="1198" y2="260.2" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="80" y="264.2" text-anchor="end" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="12" fill="#475569">3,000</text>
+<line x1="92" y1="195.6" x2="1198" y2="195.6" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="80" y="199.6" text-anchor="end" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="12" fill="#475569">3,500</text>
+<line x1="92" y1="130.9" x2="1198" y2="130.9" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="80" y="134.9" text-anchor="end" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="12" fill="#475569">4,000</text>
+<line x1="92" y1="648" x2="1198" y2="648" stroke="#334155" stroke-width="1.5"/>
+<line x1="92" y1="118" x2="92" y2="648" stroke="#334155" stroke-width="1.5"/>
+<text x="645.0" y="704" text-anchor="middle" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="14.5" font-weight="600" fill="#0F172A">Interactivity — Output Tokens / sec / User  (1000 / TPOT p50)</text>
+<text x="26" y="383.0" text-anchor="middle" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="14.5" font-weight="600" fill="#0F172A" transform="rotate(-90 26 383.0)">Output Throughput per GPU  (tok/s/GPU)</text>
+<polygon points="200.7,648.0 200.7,168.1 246.2,308.5 309.4,410.1 373.1,494.1 461.3,548.6 611.6,577.0 724.8,603.9 876.5,620.4 877.5,633.9 1063.1,639.2 1063.1,648.0" fill="#0D9488" fill-opacity="0.06"/>
+<path d="M 200.7,168.1 L 246.2,308.5 L 309.4,410.1 L 373.1,494.1 L 461.3,548.6 L 611.6,577.0 L 724.8,603.9 L 876.5,620.4 L 877.5,633.9 L 1063.1,639.2" fill="none" stroke="#0F172A" stroke-width="2.2" stroke-dasharray="7,5" stroke-opacity="0.55"/>
+<path d="M 150.5,378.9 L 171.8,464.2 L 210.5,639.4" fill="none" stroke="#94A3B8" stroke-width="2.1" stroke-dasharray="5,4" stroke-opacity="0.78"/>
+<circle cx="150.5" cy="378.9" r="4.2" fill="#94A3B8" stroke="#FFFFFF" stroke-width="1.6"/>
+<circle cx="171.8" cy="464.2" r="4.2" fill="#94A3B8" stroke="#FFFFFF" stroke-width="1.6"/>
+<circle cx="210.5" cy="639.4" r="4.2" fill="#94A3B8" stroke="#FFFFFF" stroke-width="1.6"/>
+<path d="M 239.2,320.0 L 339.3,510.7 L 392.1,625.3" fill="none" stroke="#64748B" stroke-width="2.1" stroke-dasharray="5,4" stroke-opacity="0.78"/>
+<rect x="235.7" y="316.4" width="7.1" height="7.1" rx="1.5" fill="#64748B" stroke="#FFFFFF" stroke-width="1.6"/>
+<rect x="335.7" y="507.1" width="7.1" height="7.1" rx="1.5" fill="#64748B" stroke="#FFFFFF" stroke-width="1.6"/>
+<rect x="388.5" y="621.8" width="7.1" height="7.1" rx="1.5" fill="#64748B" stroke="#FFFFFF" stroke-width="1.6"/>
+<path d="M 243.5,564.7 L 354.0,576.3 L 702.7,604.7 L 847.6,640.9" fill="none" stroke="#9CA3AF" stroke-width="2.1" stroke-dasharray="5,4" stroke-opacity="0.78"/>
+<polygon points="243.5,559.0 248.9,569.2 238.1,569.2" fill="#9CA3AF" stroke="#FFFFFF" stroke-width="1.6"/>
+<polygon points="354.0,570.6 359.4,580.8 348.6,580.8" fill="#9CA3AF" stroke="#FFFFFF" stroke-width="1.6"/>
+<polygon points="702.7,599.1 708.1,609.3 697.3,609.3" fill="#9CA3AF" stroke="#FFFFFF" stroke-width="1.6"/>
+<polygon points="847.6,635.2 852.9,645.4 842.2,645.4" fill="#9CA3AF" stroke="#FFFFFF" stroke-width="1.6"/>
+<path d="M 200.7,168.1 L 246.2,308.5 L 295.3,430.6 L 336.0,513.4 L 360.3,574.9 L 441.0,622.6" fill="none" stroke="#0D9488" stroke-width="3.0" stroke-opacity="1.0"/>
+<circle cx="200.7" cy="168.1" r="5.5" fill="#0D9488" stroke="#FFFFFF" stroke-width="1.6"/>
+<circle cx="246.2" cy="308.5" r="5.5" fill="#0D9488" stroke="#FFFFFF" stroke-width="1.6"/>
+<circle cx="295.3" cy="430.6" r="5.5" fill="#0D9488" stroke="#FFFFFF" stroke-width="1.6"/>
+<circle cx="336.0" cy="513.4" r="5.5" fill="#0D9488" stroke="#FFFFFF" stroke-width="1.6"/>
+<circle cx="360.3" cy="574.9" r="5.5" fill="#0D9488" stroke="#FFFFFF" stroke-width="1.6"/>
+<circle cx="441.0" cy="622.6" r="5.5" fill="#0D9488" stroke="#FFFFFF" stroke-width="1.6"/>
+<path d="M 186.9,333.2 L 233.8,336.7 L 309.4,410.1 L 368.3,497.4 L 445.4,549.4 L 513.6,590.2 L 586.3,630.2" fill="none" stroke="#2563EB" stroke-width="2.8" stroke-opacity="1.0"/>
+<rect x="182.3" y="328.5" width="9.3" height="9.3" rx="1.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.6"/>
+<rect x="229.1" y="332.0" width="9.3" height="9.3" rx="1.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.6"/>
+<rect x="304.8" y="405.4" width="9.3" height="9.3" rx="1.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.6"/>
+<rect x="363.6" y="492.7" width="9.3" height="9.3" rx="1.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.6"/>
+<rect x="440.7" y="544.7" width="9.3" height="9.3" rx="1.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.6"/>
+<rect x="508.9" y="585.6" width="9.3" height="9.3" rx="1.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.6"/>
+<rect x="581.6" y="625.6" width="9.3" height="9.3" rx="1.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.6"/>
+<path d="M 207.0,458.6 L 256.7,467.3 L 373.1,494.1 L 461.3,548.6 L 611.6,577.0 L 711.2,604.6 L 830.7,634.8" fill="none" stroke="#7C3AED" stroke-width="2.8" stroke-opacity="1.0"/>
+<polygon points="207.0,451.2 214.4,458.6 207.0,466.0 199.6,458.6" fill="#7C3AED" stroke="#FFFFFF" stroke-width="1.6"/>
+<polygon points="256.7,459.9 264.1,467.3 256.7,474.8 249.3,467.3" fill="#7C3AED" stroke="#FFFFFF" stroke-width="1.6"/>
+<polygon points="373.1,486.7 380.5,494.1 373.1,501.5 365.7,494.1" fill="#7C3AED" stroke="#FFFFFF" stroke-width="1.6"/>
+<polygon points="461.3,541.1 468.7,548.6 461.3,556.0 453.8,548.6" fill="#7C3AED" stroke="#FFFFFF" stroke-width="1.6"/>
+<polygon points="611.6,569.6 619.0,577.0 611.6,584.5 604.2,577.0" fill="#7C3AED" stroke="#FFFFFF" stroke-width="1.6"/>
+<polygon points="711.2,597.2 718.6,604.6 711.2,612.0 703.8,604.6" fill="#7C3AED" stroke="#FFFFFF" stroke-width="1.6"/>
+<polygon points="830.7,627.4 838.1,634.8 830.7,642.2 823.2,634.8" fill="#7C3AED" stroke="#FFFFFF" stroke-width="1.6"/>
+<path d="M 216.4,545.3 L 268.2,551.6 L 394.9,564.6 L 565.5,584.1 L 724.8,603.9 L 876.5,620.4 L 877.5,633.9 L 1063.1,639.2" fill="none" stroke="#DC2626" stroke-width="2.8" stroke-opacity="1.0"/>
+<polygon points="216.4,536.7 218.6,542.2 224.5,542.6 220.0,546.4 221.4,552.1 216.4,549.0 211.4,552.1 212.9,546.4 208.3,542.6 214.2,542.2" fill="#DC2626" stroke="#FFFFFF" stroke-width="1.6"/>
+<polygon points="268.2,543.1 270.4,548.6 276.3,549.0 271.7,552.8 273.2,558.5 268.2,555.4 263.2,558.5 264.6,552.8 260.1,549.0 266.0,548.6" fill="#DC2626" stroke="#FFFFFF" stroke-width="1.6"/>
+<polygon points="394.9,556.0 397.1,561.5 403.0,561.9 398.5,565.7 399.9,571.5 394.9,568.3 389.9,571.5 391.4,565.7 386.8,561.9 392.7,561.5" fill="#DC2626" stroke="#FFFFFF" stroke-width="1.6"/>
+<polygon points="565.5,575.6 567.7,581.1 573.7,581.5 569.1,585.2 570.6,591.0 565.5,587.8 560.5,591.0 562.0,585.2 557.4,581.5 563.3,581.1" fill="#DC2626" stroke="#FFFFFF" stroke-width="1.6"/>
+<polygon points="724.8,595.4 727.0,600.9 732.9,601.3 728.4,605.1 729.8,610.8 724.8,607.7 719.8,610.8 721.3,605.1 716.7,601.3 722.6,600.9" fill="#DC2626" stroke="#FFFFFF" stroke-width="1.6"/>
+<polygon points="876.5,611.8 878.7,617.3 884.6,617.7 880.0,621.5 881.5,627.3 876.5,624.1 871.4,627.3 872.9,621.5 868.3,617.7 874.3,617.3" fill="#DC2626" stroke="#FFFFFF" stroke-width="1.6"/>
+<polygon points="877.5,625.4 879.7,630.9 885.6,631.3 881.0,635.1 882.5,640.8 877.5,637.7 872.5,640.8 873.9,635.1 869.4,631.3 875.3,630.9" fill="#DC2626" stroke="#FFFFFF" stroke-width="1.6"/>
+<polygon points="1063.1,630.7 1065.3,636.2 1071.2,636.6 1066.6,640.4 1068.1,646.1 1063.1,643.0 1058.1,646.1 1059.5,640.4 1055.0,636.6 1060.9,636.2" fill="#DC2626" stroke="#FFFFFF" stroke-width="1.6"/>
+<line x1="200.7" y1="168.1" x2="224.7" y2="159.1" stroke="#0F766E" stroke-width="1" stroke-opacity="0.55"/>
+<text x="224.7" y="156.1" text-anchor="start" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11.5" font-weight="600" fill="#0F766E">TP=1 Dyn-MTP c=64: 3,712 /GPU (29,699 on 8x!)</text>
+<line x1="246.2" y1="308.5" x2="268.2" y2="297.5" stroke="#0D9488" stroke-width="1" stroke-opacity="0.55"/>
+<text x="268.2" y="294.5" text-anchor="start" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11.5" font-weight="600" fill="#0D9488">TP=1 c=32: 2,627 /GPU @ 86 tok/s/u</text>
+<line x1="309.5" y1="410.1" x2="335.5" y2="391.1" stroke="#2563EB" stroke-width="1" stroke-opacity="0.55"/>
+<text x="335.5" y="388.1" text-anchor="start" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11.5" font-weight="600" fill="#2563EB">TP=2 c=32: 1,841 /GPU @ 122 tok/s/u</text>
+<line x1="373.1" y1="494.1" x2="393.1" y2="479.1" stroke="#7C3AED" stroke-width="1" stroke-opacity="0.55"/>
+<text x="393.1" y="476.1" text-anchor="start" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11.5" font-weight="600" fill="#7C3AED">TP=4 c=32: 1,190 /GPU @ 158 tok/s/u</text>
+<line x1="565.5" y1="584.1" x2="581.5" y2="549.1" stroke="#DC2626" stroke-width="1" stroke-opacity="0.55"/>
+<text x="581.5" y="546.1" text-anchor="start" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11.5" font-weight="600" fill="#DC2626">TP=8 c=16: 494 /GPU @ 265 tok/s/u</text>
+<line x1="830.7" y1="634.8" x2="822.7" y2="581.8" stroke="#7C3AED" stroke-width="1" stroke-opacity="0.55"/>
+<text x="822.7" y="578.8" text-anchor="end" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11.5" font-weight="600" fill="#7C3AED">TP=4 c=1: 414 tok/s/u (19.9s E2E)</text>
+<line x1="1063.1" y1="639.2" x2="1053.1" y2="534.2" stroke="#DC2626" stroke-width="1" stroke-opacity="0.55"/>
+<text x="1053.1" y="531.2" text-anchor="end" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11.5" font-weight="600" fill="#DC2626">TP=8 c=1: 544 tok/s/u (15.2s E2E · 8.1× vs MTP-0)</text>
+<line x1="150.6" y1="378.9" x2="158.6" y2="409.9" stroke="#64748B" stroke-width="1" stroke-opacity="0.55"/>
+<text x="158.6" y="406.9" text-anchor="start" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11.5" font-weight="600" fill="#64748B">No MTP (2,082)</text>
+<rect x="806" y="172" width="380" height="194" rx="8" fill="#FFFFFF" fill-opacity="0.95" stroke="#CBD5E1" stroke-width="1"/>
+<line x1="820" y1="190" x2="846" y2="190" stroke="#0F172A" stroke-width="2.2" stroke-dasharray="6,4" stroke-opacity="0.65"/>
+<text x="854" y="194" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11.5" font-weight="700" fill="#0F172A">NVFP4 Dynamic MTP Pareto Frontier</text>
+<line x1="820" y1="212" x2="846" y2="212" stroke="#DC2626" stroke-width="2.8"/>
+<polygon points="833.0,205.3 834.7,209.6 839.3,209.9 835.8,212.9 836.9,217.4 833.0,214.9 829.1,217.4 830.2,212.9 826.7,209.9 831.3,209.6" fill="#DC2626" stroke="#FFFFFF" stroke-width="1.6"/>
+<text x="854" y="216" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11.5" fill="#1E293B">TP=8 SYS Dyn-MTP + LocalArgmax + Triton (1×TP=8)</text>
+<line x1="820" y1="234" x2="846" y2="234" stroke="#7C3AED" stroke-width="2.8"/>
+<polygon points="833.0,228.2 838.8,234.0 833.0,239.8 827.2,234.0" fill="#7C3AED" stroke="#FFFFFF" stroke-width="1.6"/>
+<text x="854" y="238" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11.5" fill="#1E293B">TP=4 NODE Dyn-MTP + LocalArgmax + Triton (DP=2)</text>
+<line x1="820" y1="256" x2="846" y2="256" stroke="#2563EB" stroke-width="2.8"/>
+<rect x="829.3" y="252.3" width="7.3" height="7.3" rx="1.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="1.6"/>
+<text x="854" y="260" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11.5" fill="#1E293B">TP=2 PIX Dyn-MTP + LocalArgmax + Triton (DP=4)</text>
+<line x1="820" y1="278" x2="846" y2="278" stroke="#0D9488" stroke-width="3.0"/>
+<circle cx="833.0" cy="278.0" r="4.3" fill="#0D9488" stroke="#FFFFFF" stroke-width="1.6"/>
+<text x="854" y="282" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11.5" fill="#1E293B">TP=1 Dyn-MTP 6/3 + Rust (Champion · DP=8)</text>
+<line x1="820" y1="300" x2="846" y2="300" stroke="#9CA3AF" stroke-width="2.1" stroke-dasharray="4,3"/>
+<polygon points="833.0,294.2 838.5,304.6 827.5,304.6" fill="#9CA3AF" stroke="#FFFFFF" stroke-width="1.6"/>
+<text x="854" y="304" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11.5" fill="#1E293B">TP=8 NVFP4 + Static MTP-4 (PCIE_IPC + CUMEM=0)</text>
+<line x1="820" y1="322" x2="846" y2="322" stroke="#64748B" stroke-width="2.1" stroke-dasharray="4,3"/>
+<rect x="829.3" y="318.3" width="7.3" height="7.3" rx="1.5" fill="#64748B" stroke="#FFFFFF" stroke-width="1.6"/>
+<text x="854" y="326" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11.5" fill="#1E293B">TP=1 NVFP4 + Static MTP-4 (Prior Baseline)</text>
+<line x1="820" y1="344" x2="846" y2="344" stroke="#94A3B8" stroke-width="2.1" stroke-dasharray="4,3"/>
+<circle cx="833.0" cy="344.0" r="4.3" fill="#94A3B8" stroke="#FFFFFF" stroke-width="1.6"/>
+<text x="854" y="348" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11.5" fill="#1E293B">TP=1 NVFP4 Baseline (No MTP)</text>
+<text x="92" y="728" font-family="Roboto, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="11" fill="#94A3B8">Source: inference-recipes · Exact 1,024/8,192 uncached · Dynamic MTP + Local Argmax + Rust + Triton · 0 failed requests</text>
+<text x="1198" y="728" text-anchor="end" font-family="'Noto Sans Mono', 'Liberation Mono', 'DejaVu Sans Mono', monospace" font-size="11" fill="#94A3B8">RTX PRO 6000 (96 GB GDDR7)</text>
+</svg>
