@@ -985,6 +985,7 @@ def render_html(data: Dict[str, Any]) -> str:
     # Guide pages
     guide_sections = []
     for g in guides:
+        explorer_block = EXPLORER_HTML if (g["model_slug"] == "qwen3.8-27b" and g["hw_slug"] == "rtx-pro-6000") else ""
         guide_sections.append(f"""
         <section class="page" id="page-{g['id']}">
           <div class="page-header">
@@ -992,6 +993,7 @@ def render_html(data: Dict[str, Any]) -> str:
             <h1>{html.escape(g['title'])}</h1>
             <a class="gh-link" href="{REPO_URL}/blob/main/{g['rel_path']}" target="_blank" rel="noopener">Edit / View Source on GitHub ↗</a>
           </div>
+          {explorer_block}
           <div class="prose">{g['html']}</div>
         </section>
         """)
@@ -1414,7 +1416,6 @@ pre code {{ background: none !important; border: none !important; padding: 0 !im
   <div>
     <div class="nav-group-title">Overview</div>
     <a class="nav-item active" data-page="overview" href="#overview" onclick="navTo('overview');return false;">Leaderboard &amp; Pareto</a>
-    <a class="nav-item" data-page="explorer" href="#interactive-explorer" onclick="navTo('overview','interactive-explorer');return false;"><span class="nav-dot"></span>Interactive SLA Explorer</a>
     <a class="nav-item" data-page="recipes" href="#recipes" onclick="navTo('recipes');return false;">Runnable Recipes ({num_recipes})</a>
     <a class="nav-item" data-page="methodology" href="#methodology" onclick="navTo('methodology');return false;">Benchmark Harness</a>
   </div>
@@ -1465,8 +1466,6 @@ pre code {{ background: none !important; border: none !important; padding: 0 !im
       </div>
     </div>
 
-    {EXPLORER_HTML}
-
     <div class="filter-bar">
       <h2 style="margin:0;">Recipe Leaderboard</h2>
       <input type="search" id="lbSearch" placeholder="Filter by model, hardware, quant, TP..." oninput="filterTable(this.value)"/>
@@ -1490,8 +1489,8 @@ pre code {{ background: none !important; border: none !important; padding: 0 !im
       </table>
     </div>
 
-    <h2>Static Pareto Frontiers (2&times; HiDPI)</h2>
-    <p style="color:var(--text-muted);margin-top:-6px;">Click any chart to zoom. Generated directly from verified <code>results/metrics.json</code> and <code>results/metrics_1k8k_8k1k.json</code> runs.</p>
+    <h2>Pareto Frontiers</h2>
+    <p style="color:var(--text-muted);margin-top:-6px;">Click any chart to zoom, or open the <a href="#guide-qwen3-8-27b-rtx-pro-6000" onclick="navTo('guide-qwen3-8-27b-rtx-pro-6000');return false;">Qwen3.8-27B · RTX PRO 6000 guide</a> for the interactive SLA Pareto explorer.</p>
     <div class="charts-grid">
       {"".join(featured_charts)}
     </div>
@@ -1544,6 +1543,7 @@ function navTo(pageId, anchorId) {{
   }} else {{
     window.scrollTo({{ top: 0, behavior: 'instant' }});
   }}
+  if (typeof drawExplorer === 'function') drawExplorer();
   try {{ history.replaceState(null, '', '#' + (anchorId || pageId)); }} catch (_) {{}}
 }}
 
@@ -1593,7 +1593,7 @@ function toggleTheme() {{
   const h = location.hash.replace(/^#/, '');
   if (!h) return;
   if (h.startsWith('recipe-')) {{ navTo('recipes', h); }}
-  else if (h === 'interactive-explorer' || h === 'explorer') {{ navTo('overview', 'interactive-explorer'); }}
+  else if (h === 'interactive-explorer' || h === 'explorer') {{ navTo('guide-qwen3-8-27b-rtx-pro-6000', 'interactive-explorer'); }}
   else if (document.getElementById('page-' + h)) {{ navTo(h); }}
 }})();
 </script>

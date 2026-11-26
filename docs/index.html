@@ -572,7 +572,6 @@ pre code { background: none !important; border: none !important; padding: 0 !imp
   <div>
     <div class="nav-group-title">Overview</div>
     <a class="nav-item active" data-page="overview" href="#overview" onclick="navTo('overview');return false;">Leaderboard &amp; Pareto</a>
-    <a class="nav-item" data-page="explorer" href="#interactive-explorer" onclick="navTo('overview','interactive-explorer');return false;"><span class="nav-dot"></span>Interactive SLA Explorer</a>
     <a class="nav-item" data-page="recipes" href="#recipes" onclick="navTo('recipes');return false;">Runnable Recipes (11)</a>
     <a class="nav-item" data-page="methodology" href="#methodology" onclick="navTo('methodology');return false;">Benchmark Harness</a>
   </div>
@@ -623,79 +622,6 @@ pre code { background: none !important; border: none !important; padding: 0 !imp
       </div>
     </div>
 
-    
-    <section class="explorer-section" id="interactive-explorer">
-      <div class="explorer-head">
-        <div>
-          <h2>Interactive Pareto &amp; SLA Explorer</h2>
-          <p>Qwen3.8-27B on 8&times; NVIDIA RTX PRO 6000 Blackwell (vLLM 0.34.0, 10k ISL / 500 OSL uncached). Drag the SLA sliders or hover any point.</p>
-        </div>
-        <div class="exp-seg" id="exp-mode">
-          <button class="exp-seg-btn active" data-m="node" type="button">8-GPU Node Pareto</button>
-          <button class="exp-seg-btn" data-m="poisson" type="button">1&times; Poisson RPS Knee</button>
-        </div>
-      </div>
-
-      <div class="explorer-grid">
-        <div class="exp-card exp-chart-card" id="exp-chart-card">
-          <div class="exp-chart-top">
-            <strong id="exp-title"></strong>
-            <span id="exp-sub"></span>
-          </div>
-          <svg id="exp-svg" viewBox="0 0 760 355" width="100%" style="display:block;height:auto;"></svg>
-          <div class="exp-tip" id="exp-tip"></div>
-          <div class="exp-legend" id="exp-legend"></div>
-          <div class="exp-foot">
-            <span id="exp-footnote"></span>
-            <span>Uniform labels: tok/s &middot; E2E p90 &middot; TTFT p90 (hover any dot)</span>
-          </div>
-        </div>
-
-        <div class="exp-side">
-          <div class="exp-card">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <strong style="font-size:13.5px;">Interactive SLA Filters</strong>
-              <button class="exp-preset-btn" id="exp-reset" type="button">Reset</button>
-            </div>
-            <div class="exp-presets">
-              <button class="exp-preset-btn" type="button" onclick="setExpPreset(2.0, 1000)">Sub-2s Floor</button>
-              <button class="exp-preset-btn" type="button" onclick="setExpPreset(8.0, 2500)">8s Interactive</button>
-              <button class="exp-preset-btn" type="button" onclick="setExpPreset(65.0, 20000)">Peak Node</button>
-            </div>
-            <div class="exp-slider-row">
-              <span>Max E2E p90</span>
-              <span class="exp-val" id="exp-sla-val">&le; 8.00s</span>
-            </div>
-            <input class="exp-range" type="range" id="exp-sla" min="1.6" max="65.0" step="0.05" value="8.0"/>
-            <div class="exp-slider-row">
-              <span>Max TTFT p90</span>
-              <span class="exp-val exp-val-green" id="exp-ttft-val">&le; 2,500ms</span>
-            </div>
-            <input class="exp-range exp-range-green" type="range" id="exp-ttft" min="700" max="20000" step="50" value="2500"/>
-            <div class="exp-rec" id="exp-rec"></div>
-          </div>
-
-          <div class="exp-note-card green-accent">
-            <div class="exp-tag">1.65s E2E p90 on PCIe Gen5</div>
-            <div>
-              <strong><span class="exp-mono">PCIE_IPC=1</span> + <span class="exp-mono">P2P=SYS</span> + <span class="exp-mono">CUMEM=0</span> + <span class="exp-mono">qwen_g4_kernels</span>:</strong><br/>
-              &bull; <span class="exp-mono">TP=8 MTP-5</span>: <strong class="exp-mono">1.49s p50 / 1.65s p90</strong> (<span class="exp-mono">330 tok/s</span>, <span class="exp-mono">750ms</span> TTFT)<br/>
-              &bull; <span class="exp-mono">TP=8 MTP-4</span>: <strong class="exp-mono">1.59s p50 / 1.76s p90</strong> (<span class="exp-mono">311 tok/s</span>, <span class="exp-mono">749ms</span> TTFT)<br/>
-              &bull; <span class="exp-mono">TP=4 MTP-4</span>: <span class="exp-mono">1.88s p50 / 2.13s p90</span> (<span class="exp-mono">DP=2</span> = <span class="exp-mono">517&ndash;1,137 tok/s</span>)
-            </div>
-          </div>
-
-          <div class="exp-note-card">
-            <div class="exp-tag exp-tag-blue">Open-Loop Queuing Knee</div>
-            <div>
-              Up to <span class="exp-mono">0.45 RPS/GPU</span> (<strong><span class="exp-mono">3.6 RPS</span>/node</strong>), queues stay flat (<span class="exp-mono">1.44s</span> TTFT p90, <span class="exp-mono">7.11s</span> MTP-4 / <span class="exp-mono">6.82s</span> MTP-5 E2E p90). Beyond <span class="exp-mono">0.65 RPS/GPU</span>, TPOT tail climbs steeply toward saturation.
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-
     <div class="filter-bar">
       <h2 style="margin:0;">Recipe Leaderboard</h2>
       <input type="search" id="lbSearch" placeholder="Filter by model, hardware, quant, TP..." oninput="filterTable(this.value)"/>
@@ -719,8 +645,8 @@ pre code { background: none !important; border: none !important; padding: 0 !imp
       </table>
     </div>
 
-    <h2>Static Pareto Frontiers (2&times; HiDPI)</h2>
-    <p style="color:var(--text-muted);margin-top:-6px;">Click any chart to zoom. Generated directly from verified <code>results/metrics.json</code> and <code>results/metrics_1k8k_8k1k.json</code> runs.</p>
+    <h2>Pareto Frontiers</h2>
+    <p style="color:var(--text-muted);margin-top:-6px;">Click any chart to zoom, or open the <a href="#guide-qwen3-8-27b-rtx-pro-6000" onclick="navTo('guide-qwen3-8-27b-rtx-pro-6000');return false;">Qwen3.8-27B · RTX PRO 6000 guide</a> for the interactive SLA Pareto explorer.</p>
     <div class="charts-grid">
       <div class="chart-card"><img src="assets/qwen3.8-27b-rtx-pro-6000/pareto_1k8k_interactivity_vs_throughput.png" alt="Pareto 1K8K Interactivity Vs Throughput" loading="lazy" onclick="openLightbox(this.src, this.alt)"/></div><div class="chart-card"><img src="assets/qwen3.8-27b-rtx-pro-6000/pareto_8k1k_interactivity_vs_throughput.png" alt="Pareto 8K1K Interactivity Vs Throughput" loading="lazy" onclick="openLightbox(this.src, this.alt)"/></div><div class="chart-card"><img src="assets/qwen3.8-27b-rtx-pro-6000/pareto_interactivity_vs_throughput.png" alt="Pareto Interactivity Vs Throughput" loading="lazy" onclick="openLightbox(this.src, this.alt)"/></div><div class="chart-card"><img src="assets/qwen3.8-27b-rtx-pro-6000/pareto_node_throughput_vs_e2e_p90.png" alt="Pareto Node Throughput Vs E2E P90" loading="lazy" onclick="openLightbox(this.src, this.alt)"/></div>
     </div>
@@ -2431,6 +2357,78 @@ python3 bench/scripts/build_catalog.py --write</code></pre></div></div>
             <h1>Qwen3.8-27B on NVIDIA RTX PRO 6000 Blackwell — Hill-Climb &amp; 8x Scaling Guide</h1>
             <a class="gh-link" href="https://github.com/kkr16/inference-recipes/blob/main/models/qwen3.8-27b/rtx-pro-6000/README.md" target="_blank" rel="noopener">Edit / View Source on GitHub ↗</a>
           </div>
+          
+    <section class="explorer-section" id="interactive-explorer">
+      <div class="explorer-head">
+        <div>
+          <h2>Interactive Pareto &amp; SLA Explorer</h2>
+          <p>Qwen3.8-27B on 8&times; NVIDIA RTX PRO 6000 Blackwell (vLLM 0.34.0, 10k ISL / 500 OSL uncached). Drag the SLA sliders or hover any point.</p>
+        </div>
+        <div class="exp-seg" id="exp-mode">
+          <button class="exp-seg-btn active" data-m="node" type="button">8-GPU Node Pareto</button>
+          <button class="exp-seg-btn" data-m="poisson" type="button">1&times; Poisson RPS Knee</button>
+        </div>
+      </div>
+
+      <div class="explorer-grid">
+        <div class="exp-card exp-chart-card" id="exp-chart-card">
+          <div class="exp-chart-top">
+            <strong id="exp-title"></strong>
+            <span id="exp-sub"></span>
+          </div>
+          <svg id="exp-svg" viewBox="0 0 760 355" width="100%" style="display:block;height:auto;"></svg>
+          <div class="exp-tip" id="exp-tip"></div>
+          <div class="exp-legend" id="exp-legend"></div>
+          <div class="exp-foot">
+            <span id="exp-footnote"></span>
+            <span>Uniform labels: tok/s &middot; E2E p90 &middot; TTFT p90 (hover any dot)</span>
+          </div>
+        </div>
+
+        <div class="exp-side">
+          <div class="exp-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong style="font-size:13.5px;">Interactive SLA Filters</strong>
+              <button class="exp-preset-btn" id="exp-reset" type="button">Reset</button>
+            </div>
+            <div class="exp-presets">
+              <button class="exp-preset-btn" type="button" onclick="setExpPreset(2.0, 1000)">Sub-2s Floor</button>
+              <button class="exp-preset-btn" type="button" onclick="setExpPreset(8.0, 2500)">8s Interactive</button>
+              <button class="exp-preset-btn" type="button" onclick="setExpPreset(65.0, 20000)">Peak Node</button>
+            </div>
+            <div class="exp-slider-row">
+              <span>Max E2E p90</span>
+              <span class="exp-val" id="exp-sla-val">&le; 8.00s</span>
+            </div>
+            <input class="exp-range" type="range" id="exp-sla" min="1.6" max="65.0" step="0.05" value="8.0"/>
+            <div class="exp-slider-row">
+              <span>Max TTFT p90</span>
+              <span class="exp-val exp-val-green" id="exp-ttft-val">&le; 2,500ms</span>
+            </div>
+            <input class="exp-range exp-range-green" type="range" id="exp-ttft" min="700" max="20000" step="50" value="2500"/>
+            <div class="exp-rec" id="exp-rec"></div>
+          </div>
+
+          <div class="exp-note-card green-accent">
+            <div class="exp-tag">1.65s E2E p90 on PCIe Gen5</div>
+            <div>
+              <strong><span class="exp-mono">PCIE_IPC=1</span> + <span class="exp-mono">P2P=SYS</span> + <span class="exp-mono">CUMEM=0</span> + <span class="exp-mono">qwen_g4_kernels</span>:</strong><br/>
+              &bull; <span class="exp-mono">TP=8 MTP-5</span>: <strong class="exp-mono">1.49s p50 / 1.65s p90</strong> (<span class="exp-mono">330 tok/s</span>, <span class="exp-mono">750ms</span> TTFT)<br/>
+              &bull; <span class="exp-mono">TP=8 MTP-4</span>: <strong class="exp-mono">1.59s p50 / 1.76s p90</strong> (<span class="exp-mono">311 tok/s</span>, <span class="exp-mono">749ms</span> TTFT)<br/>
+              &bull; <span class="exp-mono">TP=4 MTP-4</span>: <span class="exp-mono">1.88s p50 / 2.13s p90</span> (<span class="exp-mono">DP=2</span> = <span class="exp-mono">517&ndash;1,137 tok/s</span>)
+            </div>
+          </div>
+
+          <div class="exp-note-card">
+            <div class="exp-tag exp-tag-blue">Open-Loop Queuing Knee</div>
+            <div>
+              Up to <span class="exp-mono">0.45 RPS/GPU</span> (<strong><span class="exp-mono">3.6 RPS</span>/node</strong>), queues stay flat (<span class="exp-mono">1.44s</span> TTFT p90, <span class="exp-mono">7.11s</span> MTP-4 / <span class="exp-mono">6.82s</span> MTP-5 E2E p90). Beyond <span class="exp-mono">0.65 RPS/GPU</span>, TPOT tail climbs steeply toward saturation.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
           <div class="prose"><div class="callout callout-important"><div class="callout-title">IMPORTANT</div><p><strong>Headline Result (<code>10,000</code> ISL / <code>500</code> OSL on NVIDIA RTX PRO 6000 Blackwell Server Edition)</strong>:</p>
 <ul><li><strong>1x GPU Winner (<code>vLLM 0.34.0</code> + <code>nvidia/Qwen3.8-27B-NVFP4</code> + <code>MTP-4</code> + <code>--mamba-ssm-cache-dtype bfloat16</code> + <code>--max-num-batched-tokens 4096</code>)</strong>: Delivers <strong>6.10x faster single-stream speed than Native BF16</strong> (<code>149.35</code> vs <code>24.49 out_tok/s</code>; <strong>3.54x</strong> over baseline <code>FP8</code> <code>42.23</code>), <strong>5.29x lower E2E p90 vs Native BF16</strong> (<code>3.86s</code> vs <code>20.42s</code> at <code>c=1</code>; <strong><code>4.17s</code> p90 at <code>c=2</code></strong>; <strong><code>7.26s</code> p90 at <code>c=4</code></strong>), and <strong><code>439.72–521.55 out_tok/s</code></strong> at <code>c=8..24</code>. Adding <code>VLLM_USE_BREAKABLE_CUDAGRAPH=0</code> + <code>torch.compile mode=3</code> pushes <code>1x</code> <code>c=16</code> further to <strong><code>513.36 out_tok/s</code></strong> (<code>22.35s</code> p90) and <code>c=1</code> to <strong><code>150.22 out_tok/s</code></strong> (<code>3.75s</code> p90), while omitting the <code>0.90</code> cap lets vLLM <code>0.34.0</code>&#x27;s <strong>Extensible KV Cache</strong> reclaim <code>7.82 GiB</code> for <strong><code>66.74x</code> (<code>1,093,391</code> tok)</strong> per-GPU KV headroom (<code>533.9x</code> across <code>DP=8</code>).</li><li><strong><code>1</code> GPU NVFP4 Still Beats <code>8</code> GPUs Native BF16 (Even With <code>PCIE_IPC + P2P=SYS</code>)</strong>: A single tuned <code>NVFP4 + MTP-4</code> GPU (<code>502.40</code> default / <strong><code>513.36</code></strong> <code>mode=3</code> at <code>c=16</code>) outperforms all <strong>8 GPUs running Naive BF16 <code>TP=8</code></strong> (<code>291.24</code>) by <code>1.76x</code> AND still edges out <strong>8 GPUs running Tuned <code>BF16 + MTP-4 TP=8</code> with BOTH <code>NCCL_P2P_LEVEL=SYS</code> + <code>VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=1</code></strong> (<code>502.17</code>).</li><li><strong><code>1.65s</code> E2E p90 ACHIEVED Uncached Over PCIe Gen5 (<code>VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=1</code> + <code>NCCL_P2P_LEVEL=SYS</code> + <code>qwen_g4_kernels</code> Triton <code>in_proj_ba</code>)</strong>: Pairing <code>NCCL_P2P_LEVEL=SYS</code> (<code>38–40 GB/s</code> prefill P2P DMA) with FlashInfer&#x27;s PCIe CUDA-IPC AllReduce (<code>VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC=1</code>) broke <code>&lt; 2.0s</code> (<code>1.81s</code> p90, <code>305.39 tok/s</code>). Stacking the <strong><code>qwen_g4_kernels</code> skinny Triton GEMM plugin</strong> for the <code>48</code> Gated DeltaNet <code>in_proj_ba</code> projections (<code>[12, 5120]</code> at <code>TP=8</code>) adds another <strong><code>+8.1%</code></strong> single-stream speedup (<code>-130</code> to <code>-160 ms</code>):</li><li><strong><code>TP=8</code> NVFP4 <code>MTP-5</code> + <code>qwen_g4_kernels</code> (<code>c=1</code>)</strong>: <strong><code>330.03 out_tok/s</code></strong> (<code>4.54 tok/step</code>), <code>TTFT 748.7 / 750.1 ms</code>, <code>TPOT 1.49 / 1.80 ms</code>, <strong><code>E2E 1.494s p50 / 1.648s p90</code></strong> (<strong>352 ms below <code>2.00s</code> p90</strong>!).</li><li><strong><code>TP=8</code> NVFP4 <code>MTP-4</code> + <code>qwen_g4_kernels</code> (<code>c=1</code>)</strong>: <strong><code>310.64 out_tok/s</code></strong>, <code>TTFT 748.3 / 749.3 ms</code>, <code>TPOT 1.69 / 2.02 ms</code>, <strong><code>E2E 1.592s p50 / 1.758s p90</code></strong> (<code>c=4</code>: <code>503.68 tok/s</code>; <code>c=16</code>: <code>578.90 tok/s</code>).</li><li><strong>Bonus <code>1x</code> FP8 Win (<code>draft_lm_head_quantization: fp8</code> + <code>qwen_g4_kernels</code>)</strong>: Lifts single-GPU FP8 <code>c=1</code> by <strong><code>+12.9%</code></strong> (<code>99.94 → 112.79 out_tok/s</code>) and cuts E2E p90 <strong><code>-12.1%</code></strong> (<code>5.59s → 4.91s</code>), breaking <code>&lt; 5.0s</code> on 1 FP8 GPU (<code>59.85x</code> KV headroom).</li><li><strong>8x GPU Architecture Winner (<code>DP=8 × TP=1</code>)</strong>: Even after <code>PCIE_IPC + P2P=SYS + qwen_g4_kernels</code> rescues <code>TP=4</code> (<code>1,137.2</code> node tok/s) and <code>TP=8</code> (<code>578.9</code>), Data Parallelism across 8 GPUs still dominates cluster capacity: <strong><code>2,735.8 out_tok/s</code></strong> at <code>c=4/GPU</code> (<code>7.26s</code> p90) and <strong><code>4,019.2 out_tok/s</code></strong> (<code>4,106.9</code> with <code>mode=3</code>) at <code>c=16/GPU</code> (<code>4,172.4</code> at <code>c=24/GPU</code>) — <strong><code>3.61x</code></strong> over <code>DP=2 × TP=4 IPC+SYS</code> and <strong><code>7.09x</code></strong> over <code>TP=8 IPC+SYS</code>.</li><li><strong>NEW — <code>1k/8k</code> (Decode-Heavy) &amp; <code>8k/1k</code> (Prefill-Heavy) Dynamic MTP Hill-Climb (<code>237</code> verified runs, <code>5,782</code> requests, <code>0</code> failures)</strong>: Stacking <strong>Dynamic MTP</strong> (<code>num_speculative_tokens_per_batch_size</code>: <code>K=6</code> at low batch → <code>K=3</code> at high batch), <strong><code>use_local_argmax_reduction=true</code></strong> (<code>+4.6%</code> to <code>+6.2%</code> on PCIe <code>TP=2/4/8</code> at <code>c=64</code>), <strong><code>VLLM_USE_RUST_FRONTEND=1</code></strong> (<code>vllm-rs</code>), <strong><code>NCCL_CUMEM_ENABLE=0</code></strong> (<code>-52%</code> CUDA Graph VRAM), and <strong><code>qwen_g4_kernels</code></strong> (<code>+10.2%</code> to <code>+15.2%</code> at <code>c=1</code> on <code>TP=4/8</code>) pushes <strong><code>TP=1</code> (<code>DP=8</code>)</strong> to <strong><code>3,712 out_tok/s/GPU</code> (<code>29,699 node tok/s</code>)</strong> on <code>1k/8k</code> (<code>+79.3%</code> over <code>MTP-0</code>) and <strong><code>1,073 out_tok/s/GPU</code> (<code>8,583 node tok/s</code>, <code>566 ms</code> TTFT)</strong> on <code>8k/1k</code>, while <strong><code>TP=8</code></strong> reaches <strong><code>544 tok/s/user</code></strong> (<code>15.16s</code> E2E for 8,192 tokens, <strong><code>8.14x</code></strong> vs stock <code>TP=1</code>) on <code>1k/8k</code> and <strong><code>635 tok/s/user</code></strong> (<code>1.57 ms</code> TPOT, <strong><code>2.21s</code> E2E</strong>) on <code>8k/1k</code> (see <a href="https://github.com/kkr16/inference-recipes/blob/main/#8-1k8k-decode-heavy--8k1k-prefill-heavy-hill-climb-1--2--4--8-gpus" target="_blank" rel="noopener">Section 8</a>).</li></ul></div>
 <hr/>
@@ -2722,6 +2720,7 @@ function navTo(pageId, anchorId) {
   } else {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
+  if (typeof drawExplorer === 'function') drawExplorer();
   try { history.replaceState(null, '', '#' + (anchorId || pageId)); } catch (_) {}
 }
 
@@ -3075,7 +3074,7 @@ drawExplorer();
   const h = location.hash.replace(/^#/, '');
   if (!h) return;
   if (h.startsWith('recipe-')) { navTo('recipes', h); }
-  else if (h === 'interactive-explorer' || h === 'explorer') { navTo('overview', 'interactive-explorer'); }
+  else if (h === 'interactive-explorer' || h === 'explorer') { navTo('guide-qwen3-8-27b-rtx-pro-6000', 'interactive-explorer'); }
   else if (document.getElementById('page-' + h)) { navTo(h); }
 })();
 </script>
