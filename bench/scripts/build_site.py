@@ -28,6 +28,557 @@ from typing import Any, Dict, List, Tuple
 SITE_URL = "https://kkr16.github.io/inference-recipes/"
 REPO_URL = "https://github.com/kkr16/inference-recipes"
 
+EXPLORER_CSS = r"""
+/* Interactive SLA Pareto Explorer */
+.explorer-section {
+  margin: 26px 0 32px;
+  scroll-margin-top: 20px;
+}
+.explorer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.explorer-head h2 { margin: 0 0 4px; }
+.explorer-head p { margin: 0; color: var(--text-muted); font-size: 13.5px; }
+.exp-seg {
+  display: inline-flex;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+}
+.exp-seg-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.exp-seg-btn.active {
+  background: var(--accent-2);
+  color: #ffffff;
+}
+.explorer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.85fr) minmax(265px, 0.72fr);
+  gap: 16px;
+  align-items: stretch;
+}
+.exp-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.exp-chart-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.exp-chart-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.exp-chart-top strong { font-size: 14px; }
+.exp-chart-top span { font-size: 11.5px; color: var(--text-muted); }
+.exp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.exp-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.exp-tip {
+  display: none;
+  position: absolute;
+  pointer-events: none;
+  z-index: 25;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text);
+  white-space: nowrap;
+}
+.exp-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.exp-slider-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  margin: 8px 0 3px;
+}
+.exp-slider-row span:first-child { color: var(--text-muted); font-weight: 600; }
+.exp-val { font-family: monospace; font-weight: 700; color: var(--accent-2); }
+.exp-val-green { color: var(--accent); }
+.exp-range { width: 100%; cursor: pointer; margin: 0 0 4px; accent-color: var(--accent-2); }
+.exp-range-green { accent-color: var(--accent); }
+.exp-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+.exp-preset-btn {
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 99px;
+  cursor: pointer;
+}
+.exp-preset-btn:hover { border-color: var(--accent-2); color: var(--accent-2); }
+.exp-rec {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  border-left: 4px solid var(--accent);
+  font-size: 12px;
+  line-height: 1.48;
+}
+.exp-note-card {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.48;
+}
+.exp-note-card.green-accent { border-left: 3px solid var(--accent); }
+.exp-tag {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-bottom: 5px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.exp-tag-blue { background: rgba(37, 99, 235, 0.12); color: var(--accent-2); }
+.exp-mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.92em; }
+@media (max-width: 980px) {
+  .explorer-grid { grid-template-columns: 1fr; }
+}
+"""
+
+EXPLORER_HTML = r"""
+    <section class="explorer-section" id="interactive-explorer">
+      <div class="explorer-head">
+        <div>
+          <h2>Interactive Pareto &amp; SLA Explorer</h2>
+          <p>Qwen3.8-27B on 8&times; NVIDIA RTX PRO 6000 Blackwell (vLLM 0.34.0, 10k ISL / 500 OSL uncached). Drag the SLA sliders or hover any point.</p>
+        </div>
+        <div class="exp-seg" id="exp-mode">
+          <button class="exp-seg-btn active" data-m="node" type="button">8-GPU Node Pareto</button>
+          <button class="exp-seg-btn" data-m="poisson" type="button">1&times; Poisson RPS Knee</button>
+        </div>
+      </div>
+
+      <div class="explorer-grid">
+        <div class="exp-card exp-chart-card" id="exp-chart-card">
+          <div class="exp-chart-top">
+            <strong id="exp-title"></strong>
+            <span id="exp-sub"></span>
+          </div>
+          <svg id="exp-svg" viewBox="0 0 760 355" width="100%" style="display:block;height:auto;"></svg>
+          <div class="exp-tip" id="exp-tip"></div>
+          <div class="exp-legend" id="exp-legend"></div>
+          <div class="exp-foot">
+            <span id="exp-footnote"></span>
+            <span>Uniform labels: tok/s &middot; E2E p90 &middot; TTFT p90 (hover any dot)</span>
+          </div>
+        </div>
+
+        <div class="exp-side">
+          <div class="exp-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong style="font-size:13.5px;">Interactive SLA Filters</strong>
+              <button class="exp-preset-btn" id="exp-reset" type="button">Reset</button>
+            </div>
+            <div class="exp-presets">
+              <button class="exp-preset-btn" type="button" onclick="setExpPreset(2.0, 1000)">Sub-2s Floor</button>
+              <button class="exp-preset-btn" type="button" onclick="setExpPreset(8.0, 2500)">8s Interactive</button>
+              <button class="exp-preset-btn" type="button" onclick="setExpPreset(65.0, 20000)">Peak Node</button>
+            </div>
+            <div class="exp-slider-row">
+              <span>Max E2E p90</span>
+              <span class="exp-val" id="exp-sla-val">&le; 8.00s</span>
+            </div>
+            <input class="exp-range" type="range" id="exp-sla" min="1.6" max="65.0" step="0.05" value="8.0"/>
+            <div class="exp-slider-row">
+              <span>Max TTFT p90</span>
+              <span class="exp-val exp-val-green" id="exp-ttft-val">&le; 2,500ms</span>
+            </div>
+            <input class="exp-range exp-range-green" type="range" id="exp-ttft" min="700" max="20000" step="50" value="2500"/>
+            <div class="exp-rec" id="exp-rec"></div>
+          </div>
+
+          <div class="exp-note-card green-accent">
+            <div class="exp-tag">1.65s E2E p90 on PCIe Gen5</div>
+            <div>
+              <strong><span class="exp-mono">PCIE_IPC=1</span> + <span class="exp-mono">P2P=SYS</span> + <span class="exp-mono">CUMEM=0</span> + <span class="exp-mono">qwen_g4_kernels</span>:</strong><br/>
+              &bull; <span class="exp-mono">TP=8 MTP-5</span>: <strong class="exp-mono">1.49s p50 / 1.65s p90</strong> (<span class="exp-mono">330 tok/s</span>, <span class="exp-mono">750ms</span> TTFT)<br/>
+              &bull; <span class="exp-mono">TP=8 MTP-4</span>: <strong class="exp-mono">1.59s p50 / 1.76s p90</strong> (<span class="exp-mono">311 tok/s</span>, <span class="exp-mono">749ms</span> TTFT)<br/>
+              &bull; <span class="exp-mono">TP=4 MTP-4</span>: <span class="exp-mono">1.88s p50 / 2.13s p90</span> (<span class="exp-mono">DP=2</span> = <span class="exp-mono">517&ndash;1,137 tok/s</span>)
+            </div>
+          </div>
+
+          <div class="exp-note-card">
+            <div class="exp-tag exp-tag-blue">Open-Loop Queuing Knee</div>
+            <div>
+              Up to <span class="exp-mono">0.45 RPS/GPU</span> (<strong><span class="exp-mono">3.6 RPS</span>/node</strong>), queues stay flat (<span class="exp-mono">1.44s</span> TTFT p90, <span class="exp-mono">7.11s</span> MTP-4 / <span class="exp-mono">6.82s</span> MTP-5 E2E p90). Beyond <span class="exp-mono">0.65 RPS/GPU</span>, TPOT tail climbs steeply toward saturation.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+"""
+
+EXPLORER_JS = r"""
+/* ==================== INTERACTIVE PARETO & SLA EXPLORER ==================== */
+let expMode = "node", expSla = 8.0, expTtft = 2500;
+const expFmtTtft = (ms) => ms < 1000 ? `${Math.round(ms)}ms` : (ms < 10000 ? `${(ms / 1000).toFixed(2)}s` : `${(ms / 1000).toFixed(1)}s`);
+const expFmtE2e = (s) => s < 10 ? `${s.toFixed(2)}s` : `${s.toFixed(1)}s`;
+
+const EXP_NODE_CURVES = [
+  {
+    id:"dp8_nvfp4", name:"DP=8 × TP=1 NVFP4 (MTP-4)", short:"DP=8 NVFP4", col:"#2563EB", w:2.6, dash:"", recipe:"recipe-tp1-vllm-nvfp4-mtp4",
+    pts:[
+      {tag:"c=1",  x:3.86,  y:1194.8, ttft90:720},
+      {tag:"c=2",  x:4.17,  y:1999.3, ttft90:1403},
+      {tag:"c=4",  x:7.26,  y:2735.8, ttft90:2051},
+      {tag:"c=8",  x:12.30, y:3517.8, ttft90:4430},
+      {tag:"c=16", x:24.05, y:4019.2, ttft90:9761}
+    ]
+  },
+  {
+    id:"dp4_tp2", name:"DP=4 × TP=2 PIX NVFP4", short:"DP=4×TP=2", col:"#0D9488", w:2.1, dash:"", recipe:"recipe-tp2-vllm-nvfp4-mtp4",
+    pts:[
+      {tag:"c=1",  x:2.66,  y:844.8,  ttft90:775},
+      {tag:"c=4",  x:6.64,  y:1564.2, ttft90:2186},
+      {tag:"c=16", x:21.11, y:2102.3, ttft90:10106}
+    ]
+  },
+  {
+    id:"tp8_ipc", name:"TP=8 IPC+Triton NVFP4 (1×8)", short:"TP=8 IPC+Triton", col:"#DC2626", w:2.3, dash:"", recipe:"recipe-tp8-vllm-nvfp4-mtp5",
+    pts:[
+      {tag:"c=1",  x:1.65,  y:330.0,  ttft90:750},
+      {tag:"c=4",  x:5.10,  y:503.7,  ttft90:1968},
+      {tag:"c=16", x:22.51, y:578.9,  ttft90:9705}
+    ]
+  },
+  {
+    id:"dp8_fp8", name:"DP=8 × TP=1 FP8 (MTP-4)", short:"DP=8 FP8", col:"#64748B", w:1.8, dash:"5 3", recipe:"recipe-tp1-vllm-fp8-mtp4",
+    pts:[
+      {tag:"c=1",  x:5.59,  y:799.5,  ttft90:1040},
+      {tag:"c=4",  x:9.57,  y:1855.4, ttft90:2951},
+      {tag:"c=16", x:32.66, y:2930.1, ttft90:13866}
+    ]
+  },
+  {
+    id:"tp8_bf16n", name:"TP=8 BF16 Naive (1×8)", short:"TP=8 BF16 Naive", col:"#94A3B8", w:1.6, dash:"2 2", recipe:"",
+    pts:[
+      {tag:"c=1",  x:7.45,  y:67.4,   ttft90:1163},
+      {tag:"c=16", x:38.48, y:291.2,  ttft90:14965}
+    ]
+  },
+  {
+    id:"tp1_bf16n", name:"1× GPU BF16 Naive (TP=1 DP=1)", short:"1× BF16 Naive", col:"#B45309", w:1.8, dash:"3 2", recipe:"",
+    pts:[
+      {tag:"c=1",  x:20.42, y:24.49,  ttft90:1486.3},
+      {tag:"c=4",  x:25.90, y:77.65,  ttft90:5104.9},
+      {tag:"c=16", x:61.65, y:168.63, ttft90:19595.6}
+    ]
+  }
+];
+
+const EXP_POISSON_CURVES = [
+  {
+    id:"p_mtp4", name:"1× NVFP4 MTP-4 (Poisson)", short:"1× NVFP4 MTP-4", col:"#2563EB", w:2.5, dash:"", recipe:"recipe-tp1-vllm-nvfp4-mtp4",
+    pts:[
+      {tag:"0.25 RPS", x:5.30,  y:99.92,  ttft90:1050},
+      {tag:"0.45 RPS", x:7.11,  y:199.98, ttft90:1436},
+      {tag:"0.65 RPS", x:12.68, y:296.79, ttft90:2230},
+      {tag:"0.80 RPS", x:15.77, y:364.01, ttft90:2436}
+    ]
+  },
+  {
+    id:"p_mtp5", name:"1× NVFP4 MTP-5 (Poisson)", short:"1× NVFP4 MTP-5", col:"#0D9488", w:2.3, dash:"6 3", recipe:"recipe-tp1-vllm-nvfp4-mtp4",
+    pts:[
+      {tag:"0.25 RPS", x:5.43,  y:99.18,  ttft90:1071},
+      {tag:"0.45 RPS", x:6.82,  y:199.42, ttft90:1446},
+      {tag:"0.65 RPS", x:11.62, y:295.37, ttft90:2119}
+    ]
+  }
+];
+
+const EXP_NODE_POS = {
+  "dp8_nvfp4_c=1":  { dx: -8, dy:-24, anc:"end",   lm:"std" },
+  "dp8_nvfp4_c=2":  { dx:-12, dy:-36, anc:"end",   lm:"std" },
+  "dp8_nvfp4_c=4":  { dx:-12, dy:-24, anc:"end",   lm:"std" },
+  "dp8_nvfp4_c=8":  { dx:-10, dy:-18, anc:"end",   lm:"std" },
+  "dp8_nvfp4_c=16": { dx: 12, dy:-16, anc:"start", lm:"std" },
+  "dp4_tp2_c=1":    { dx:  0, dy:-72, anc:"end",   lm:"std" },
+  "dp4_tp2_c=4":    { dx:-10, dy:-44, anc:"start", lm:"std" },
+  "dp4_tp2_c=16":   { dx: 12, dy:-14, anc:"start", lm:"std" },
+  "tp8_ipc_c=1":    { dx:-24, dy:-54, anc:"start", lm:"bottom_x" },
+  "tp8_ipc_c=4":    { dx:-12, dy: 12, anc:"end",   lm:"std" },
+  "tp8_ipc_c=16":   { dx:-10, dy:-36, anc:"end",   lm:"std" },
+  "dp8_fp8_c=1":    { dx: 12, dy:  4, anc:"start", lm:"std" },
+  "dp8_fp8_c=4":    { dx: 12, dy: 16, anc:"start", lm:"std" },
+  "dp8_fp8_c=16":   { dx: 12, dy:-18, anc:"start", lm:"std" },
+  "tp8_bf16n_c=1":  { dx:  8, dy:-14, anc:"start", lm:"std" },
+  "tp8_bf16n_c=16": { dx: 16, dy:-64, anc:"start", lm:"std" },
+  "tp1_bf16n_c=1":  { dx: 10, dy:-96, anc:"start", lm:"std" },
+  "tp1_bf16n_c=4":  { dx:-18, dy:-54, anc:"start", lm:"std" },
+  "tp1_bf16n_c=16": { dx: 42, dy:-20, anc:"end",   lm:"std" }
+};
+
+const EXP_POIS_POS = {
+  "p_mtp4_0.25 RPS": { dx:-12, dy:-26, anc:"end",   lm:"std" },
+  "p_mtp4_0.45 RPS": { dx: 14, dy: 10, anc:"start", lm:"std" },
+  "p_mtp4_0.65 RPS": { dx: 14, dy: 10, anc:"start", lm:"std" },
+  "p_mtp4_0.80 RPS": { dx:-14, dy:-18, anc:"end",   lm:"std" },
+  "p_mtp5_0.25 RPS": { dx: 14, dy: 10, anc:"start", lm:"std" },
+  "p_mtp5_0.45 RPS": { dx:-14, dy:-24, anc:"end",   lm:"std" },
+  "p_mtp5_0.65 RPS": { dx:-14, dy:-24, anc:"end",   lm:"std" }
+};
+
+function setExpPreset(e2e, ttft) {
+  expSla = e2e;
+  expTtft = ttft;
+  const s1 = document.getElementById("exp-sla");
+  const s2 = document.getElementById("exp-ttft");
+  if (s1) s1.value = String(e2e);
+  if (s2) s2.value = String(ttft);
+  document.getElementById("exp-sla-val").textContent = "≤ " + e2e.toFixed(2) + "s";
+  document.getElementById("exp-ttft-val").textContent = "≤ " + ttft.toLocaleString() + "ms";
+  drawExplorer();
+}
+
+function drawExplorer() {
+  const svg = document.getElementById("exp-svg");
+  const recEl = document.getElementById("exp-rec");
+  if (!svg || !recEl) return;
+
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  const mu = isDark ? "#94A3B8" : "#475569";
+  const gr = isDark ? "#1E293B" : "#E2E8F0";
+  const haloStroke = isDark ? "#0B1120" : "#FFFFFF";
+  const curves = expMode === "node" ? EXP_NODE_CURVES : EXP_POISSON_CURVES;
+  const posMap = expMode === "node" ? EXP_NODE_POS : EXP_POIS_POS;
+
+  document.getElementById("exp-legend").innerHTML = curves.map((c) =>
+    `<span><i style="display:inline-block;width:11px;height:3px;background:${c.col};vertical-align:middle;margin-right:4px;"></i>${c.short}</span>`
+  ).join("");
+
+  document.getElementById("exp-title").textContent = expMode === "node"
+    ? "8-GPU Node Throughput (tok/s) vs E2E Latency p90"
+    : "1× RTX PRO 6000 Open-Loop Poisson Sweep (0.25–0.80 RPS)";
+  document.getElementById("exp-sub").textContent = expMode === "node"
+    ? "Log-scale X · mode=3 peak: 4,107 tok/s (22.4s) · c=24 peak: 4,172 tok/s"
+    : "MTP-4 vs MTP-5 stochastic inter-arrival times";
+  document.getElementById("exp-footnote").textContent = expMode === "node"
+    ? "Filled dots satisfy both SLAs (teal halo = active winner); includes literal 1-GPU BF16 baseline."
+    : "Filled dots satisfy both SLAs (MTP-5 trims Poisson E2E -4% to -8%).";
+
+  const padL = 50, padR = 16, padT = 20, padB = 38;
+  const pw = 760 - padL - padR, ph = 355 - padT - padB;
+  const minX = 1.4, maxX = expMode === "node" ? 80.0 : 18.0;
+  const maxY = expMode === "node" ? 4550.0 : 420.0;
+  const mapX = (x) => expMode === "node"
+    ? padL + (Math.log(Math.max(x, minX) / minX) / Math.log(maxX / minX)) * pw
+    : padL + (Math.min(x, maxX) / maxX) * pw;
+  const mapY = (y) => padT + ph - (y / maxY) * ph;
+
+  let out = "";
+  const sx = mapX(Math.min(expSla, maxX));
+  out += `<rect x="${padL}" y="${padT}" width="${Math.max(0, sx - padL).toFixed(1)}" height="${ph}" fill="#2563EB" fill-opacity="${isDark ? "0.10" : "0.045"}" />`;
+
+  const yTicks = expMode === "node" ? [0, 1000, 2000, 3000, 4000] : [0, 100, 200, 300, 400];
+  yTicks.forEach((yv) => {
+    const yy = mapY(yv);
+    out += `<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${padL + pw}" y2="${yy.toFixed(1)}" stroke="${yv === 0 ? "#64748B" : gr}" stroke-width="${yv === 0 ? 1.1 : 0.9}" />`;
+    out += `<text x="${padL - 7}" y="${(yy + 3.5).toFixed(1)}" text-anchor="end" font-family="monospace" font-size="9.5" fill="${mu}">${yv === 0 ? "0" : yv.toLocaleString()}</text>`;
+  });
+
+  const xTicks = expMode === "node" ? [1.5, 2, 3, 5, 8, 15, 25, 40, 65] : [0, 3, 6, 9, 12, 15, 18];
+  xTicks.forEach((xv) => {
+    const xx = mapX(xv);
+    out += `<line x1="${xx.toFixed(1)}" y1="${padT}" x2="${xx.toFixed(1)}" y2="${padT + ph}" stroke="${gr}" stroke-opacity="0.7" />`;
+    const tlbl = xv === Math.floor(xv) ? `${xv}s` : `${xv.toFixed(1)}s`;
+    out += `<text x="${xx.toFixed(1)}" y="${padT + ph + 14}" text-anchor="middle" font-family="monospace" font-size="9.5" fill="${mu}">${tlbl}</text>`;
+  });
+
+  if (expMode === "node") {
+    const x2 = mapX(2.0);
+    out += `<line x1="${x2.toFixed(1)}" y1="${padT}" x2="${x2.toFixed(1)}" y2="${padT + ph}" stroke="#DC2626" stroke-opacity="0.65" stroke-width="1.2" stroke-dasharray="3 2.5" />`;
+    out += `<text x="${(x2 + 4).toFixed(1)}" y="${padT + 10}" font-size="9.0" font-weight="700" fill="#DC2626">2.0s floor</text>`;
+  }
+  out += `<line x1="${sx.toFixed(1)}" y1="${padT}" x2="${sx.toFixed(1)}" y2="${padT + ph}" stroke="#2563EB" stroke-opacity="0.8" stroke-width="1.5" stroke-dasharray="4 3" />`;
+  const slaAnc = sx > 520 ? "end" : "start";
+  const slaLblX = sx > 520 ? sx - 5 : sx + 5;
+  out += `<text x="${slaLblX.toFixed(1)}" y="${padT + 10}" text-anchor="${slaAnc}" font-size="9.0" font-weight="700" fill="#2563EB" paint-order="stroke" stroke="${haloStroke}" stroke-width="2.6">SLA ≤ ${expSla.toFixed(2)}s · TTFT ≤ ${expFmtTtft(expTtft)}</text>`;
+  out += `<text x="${padL + pw / 2}" y="349" text-anchor="middle" font-size="10.2" font-weight="600" fill="${mu}">${expMode === "node" ? "End-to-End Request Latency p90 (seconds, log scale — lower is better)" : "End-to-End Request Latency p90 (seconds) — Open-Loop Poisson Arrivals"}</text>`;
+
+  let best = null;
+  let minE2e = Infinity, minTtft = Infinity;
+  curves.forEach((c) => c.pts.forEach((p) => {
+    if (p.x < minE2e) minE2e = p.x;
+    if (p.ttft90 < minTtft) minTtft = p.ttft90;
+  }));
+
+  let leaderLayer = "", labelLayer = "", hitLayer = "";
+  curves.forEach((c, ci) => {
+    const ptsStr = c.pts.map((p) => `${mapX(p.x).toFixed(1)},${mapY(p.y).toFixed(1)}`).join(" ");
+    if (c.pts.length > 1) {
+      out += `<polyline fill="none" stroke="${c.col}" stroke-width="${c.w}" stroke-dasharray="${c.dash}" points="${ptsStr}" />`;
+    }
+    c.pts.forEach((p, idx) => {
+      const cx = mapX(p.x), cy = mapY(p.y);
+      const ok = (p.x <= expSla) && (p.ttft90 <= expTtft);
+      if (ok && (!best || p.y > best.p.y)) best = { c, p, cx, cy };
+      out += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${ok ? 4.4 : 3.2}" fill="${ok ? c.col : haloStroke}" stroke="${c.col}" stroke-width="1.5" />`;
+      hitLayer += `<circle class="exp-hit" data-ci="${ci}" data-pi="${idx}" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="10" fill="transparent" style="cursor:pointer;" />`;
+
+      const key = `${c.id}_${p.tag}`;
+      const pos = posMap[key] || { dx: 10, dy: -12, anc: "start", lm: "std" };
+      const lx = cx + pos.dx, ly = cy + pos.dy;
+      const tx = pos.lm === "bottom_x" ? cx : (pos.anc === "start" ? lx - 3 : lx + 3);
+      const ty = pos.lm === "bottom_x" ? ly + 12 : ly + 2;
+      leaderLayer += `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${ty.toFixed(1)}" stroke="${c.col}" stroke-opacity="0.48" stroke-width="0.9" />`;
+
+      const l1 = `${c.short} (${p.tag})`;
+      const l2 = `${Math.round(p.y).toLocaleString()} tok/s · ${expFmtE2e(p.x)} · ${expFmtTtft(p.ttft90)}`;
+      labelLayer += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${pos.anc}" font-size="8.2" font-weight="700" fill="${c.col}" paint-order="stroke" stroke="${haloStroke}" stroke-width="2.6">${l1}</text>`;
+      labelLayer += `<text x="${lx.toFixed(1)}" y="${(ly + 9.4).toFixed(1)}" text-anchor="${pos.anc}" font-family="monospace" font-size="7.3" fill="${mu}" paint-order="stroke" stroke="${haloStroke}" stroke-width="2.4">${l2}</text>`;
+    });
+  });
+
+  out += leaderLayer + labelLayer;
+  if (best) {
+    out += `<circle cx="${best.cx.toFixed(1)}" cy="${best.cy.toFixed(1)}" r="8.2" fill="none" stroke="#0D9488" stroke-width="2.3" />`;
+  }
+  out += hitLayer;
+  svg.innerHTML = out;
+
+  const tip = document.getElementById("exp-tip");
+  const card = document.getElementById("exp-chart-card");
+  if (tip && card) {
+    tip.style.display = "none";
+    svg.querySelectorAll(".exp-hit").forEach((el) => {
+      el.onmouseenter = () => {
+        const c = curves[parseInt(el.dataset.ci, 10)];
+        const p = c.pts[parseInt(el.dataset.pi, 10)];
+        if (!p) return;
+        const eOk = p.x <= expSla, tOk = p.ttft90 <= expTtft;
+        const badge = (eOk && tOk)
+          ? `<span style="color:#0D9488;font-weight:700;">Meets both SLAs</span>`
+          : `<span style="color:#DC2626;font-weight:700;">Misses ${!eOk && !tOk ? "E2E &amp; TTFT" : (!eOk ? "E2E" : "TTFT")}</span>`;
+        tip.innerHTML = `<strong style="color:${c.col};">${c.short} (${p.tag})</strong><br>`
+          + `<span class="exp-mono">${Math.round(p.y).toLocaleString()} tok/s · ${expFmtE2e(p.x)} · ${expFmtTtft(p.ttft90)}</span><br>${badge}`;
+        tip.style.display = "block";
+        const cr = card.getBoundingClientRect();
+        const er = el.getBoundingClientRect();
+        let left = er.left - cr.left + 14;
+        let top = er.top - cr.top - 36;
+        if (left + tip.offsetWidth > cr.width - 10) left = er.left - cr.left - tip.offsetWidth - 10;
+        if (top < 8) top = er.top - cr.top + 16;
+        tip.style.left = Math.max(8, left) + "px";
+        tip.style.top = top + "px";
+      };
+      el.onmouseleave = () => { tip.style.display = "none"; };
+    });
+  }
+
+  if (best) {
+    const rLink = best.c.recipe
+      ? `<div style="margin-top:6px;"><a href="#${best.c.recipe}" onclick="navTo('recipes','${best.c.recipe}');return false;" style="font-weight:700;">Open Launch Recipe &rarr;</a></div>`
+      : "";
+    recEl.style.borderLeftColor = "var(--accent)";
+    recEl.innerHTML = `<strong>Winner (E2E &le; ${expSla.toFixed(2)}s &amp; TTFT &le; ${expFmtTtft(expTtft)}):</strong><br><strong>${best.c.short} (${best.p.tag})</strong><br><span class="exp-mono">${Math.round(best.p.y).toLocaleString()} tok/s &middot; ${expFmtE2e(best.p.x)} &middot; ${expFmtTtft(best.p.ttft90)}</span>${rLink}`;
+  } else if (expTtft < minTtft) {
+    recEl.style.borderLeftColor = "#D97706";
+    recEl.innerHTML = `<strong>Below ${minTtft}ms TTFT p90 Floor:</strong> Uncached 10k prefill bottoms at <span class="exp-mono">${minTtft}ms</span>. Slide TTFT &ge; <span class="exp-mono">${minTtft}ms</span> or enable prefix caching.`;
+  } else if (expSla < minE2e) {
+    recEl.style.borderLeftColor = "#D97706";
+    recEl.innerHTML = `<strong>Below ${minE2e.toFixed(2)}s E2E p90 Floor:</strong> ${expMode === "node" ? "<span class=\"exp-mono\">TP=8 MTP-5 IPC+Triton</span> reaches <span class=\"exp-mono\">1.65s</span> p90 (<span class=\"exp-mono\">330 tok/s</span>)" : "Open-loop Poisson bottoms at <span class=\"exp-mono\">5.30s</span> (<span class=\"exp-mono\">0.25 RPS</span>)"}. Slide E2E &ge; <span class="exp-mono">${minE2e.toFixed(2)}s</span>.`;
+  } else {
+    recEl.style.borderLeftColor = "#D97706";
+    recEl.innerHTML = `<strong>No Config Meets Both SLAs Together:</strong> Relax either slider — e.g., <span class="exp-mono">TP=8 IPC+Triton</span> hits <span class="exp-mono">1.65s</span> E2E / <span class="exp-mono">750ms</span> TTFT, while <span class="exp-mono">DP=8 NVFP4 (c=1)</span> hits <span class="exp-mono">3.86s</span> E2E / <span class="exp-mono">720ms</span> TTFT.`;
+  }
+}
+
+document.querySelectorAll("#exp-mode .exp-seg-btn").forEach((b) => {
+  b.onclick = () => {
+    document.querySelectorAll("#exp-mode .exp-seg-btn").forEach((x) => x.classList.remove("active"));
+    b.classList.add("active");
+    expMode = b.dataset.m;
+    drawExplorer();
+  };
+});
+const _expSlaEl = document.getElementById("exp-sla");
+if (_expSlaEl) {
+  _expSlaEl.oninput = function () {
+    expSla = parseFloat(this.value);
+    document.getElementById("exp-sla-val").textContent = "≤ " + expSla.toFixed(2) + "s";
+    drawExplorer();
+  };
+}
+const _expTtftEl = document.getElementById("exp-ttft");
+if (_expTtftEl) {
+  _expTtftEl.oninput = function () {
+    expTtft = parseInt(this.value, 10);
+    document.getElementById("exp-ttft-val").textContent = "≤ " + expTtft.toLocaleString() + "ms";
+    drawExplorer();
+  };
+}
+const _expResetEl = document.getElementById("exp-reset");
+if (_expResetEl) {
+  _expResetEl.onclick = () => setExpPreset(8.0, 2500);
+}
+drawExplorer();
+"""
+
 
 def parse_simple_yaml(text: str) -> Dict[str, Any]:
     data: Dict[str, Any] = {}
@@ -590,9 +1141,9 @@ a:hover {{ text-decoration: underline; }}
 .main {{
   flex: 1;
   min-width: 0;
-  max-width: 1160px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 32px 40px 80px;
+  padding: 28px 34px 80px;
 }}
 .page {{ display: none; }}
 .page.active {{ display: block; }}
@@ -849,6 +1400,7 @@ pre code {{ background: none !important; border: none !important; padding: 0 !im
   .sidebar {{ width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }}
   .main {{ padding: 20px 16px 60px; }}
 }}
+{EXPLORER_CSS}
 </style>
 </head>
 <body>
@@ -862,6 +1414,7 @@ pre code {{ background: none !important; border: none !important; padding: 0 !im
   <div>
     <div class="nav-group-title">Overview</div>
     <a class="nav-item active" data-page="overview" href="#overview" onclick="navTo('overview');return false;">Leaderboard &amp; Pareto</a>
+    <a class="nav-item" data-page="explorer" href="#interactive-explorer" onclick="navTo('overview','interactive-explorer');return false;"><span class="nav-dot"></span>Interactive SLA Explorer</a>
     <a class="nav-item" data-page="recipes" href="#recipes" onclick="navTo('recipes');return false;">Runnable Recipes ({num_recipes})</a>
     <a class="nav-item" data-page="methodology" href="#methodology" onclick="navTo('methodology');return false;">Benchmark Harness</a>
   </div>
@@ -912,6 +1465,8 @@ pre code {{ background: none !important; border: none !important; padding: 0 !im
       </div>
     </div>
 
+    {EXPLORER_HTML}
+
     <div class="filter-bar">
       <h2 style="margin:0;">Recipe Leaderboard</h2>
       <input type="search" id="lbSearch" placeholder="Filter by model, hardware, quant, TP..." oninput="filterTable(this.value)"/>
@@ -935,8 +1490,8 @@ pre code {{ background: none !important; border: none !important; padding: 0 !im
       </table>
     </div>
 
-    <h2>Pareto Frontiers</h2>
-    <p style="color:var(--text-muted);margin-top:-6px;">Click any chart to zoom. Generated directly from verified <code>results/metrics.json</code> runs.</p>
+    <h2>Static Pareto Frontiers (2&times; HiDPI)</h2>
+    <p style="color:var(--text-muted);margin-top:-6px;">Click any chart to zoom. Generated directly from verified <code>results/metrics.json</code> and <code>results/metrics_1k8k_8k1k.json</code> runs.</p>
     <div class="charts-grid">
       {"".join(featured_charts)}
     </div>
@@ -984,12 +1539,12 @@ function navTo(pageId, anchorId) {{
   if (anchorId) {{
     setTimeout(() => {{
       const el = document.getElementById(anchorId);
-      if (el) el.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+      if (el) el.scrollIntoView({{ behavior: 'auto', block: 'start' }});
     }}, 30);
   }} else {{
     window.scrollTo({{ top: 0, behavior: 'instant' }});
   }}
-  history.replaceState(null, '', '#' + (anchorId || pageId));
+  try {{ history.replaceState(null, '', '#' + (anchorId || pageId)); }} catch (_) {{}}
 }}
 
 function switchTab(btn, paneId) {{
@@ -1028,13 +1583,17 @@ function toggleTheme() {{
   const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
   document.getElementById('themeBtn').innerText = next === 'dark' ? 'Light' : 'Dark';
+  if (typeof drawExplorer === 'function') drawExplorer();
 }}
+
+{EXPLORER_JS}
 
 // Handle initial hash navigation
 (function() {{
   const h = location.hash.replace(/^#/, '');
   if (!h) return;
   if (h.startsWith('recipe-')) {{ navTo('recipes', h); }}
+  else if (h === 'interactive-explorer' || h === 'explorer') {{ navTo('overview', 'interactive-explorer'); }}
   else if (document.getElementById('page-' + h)) {{ navTo(h); }}
 }})();
 </script>

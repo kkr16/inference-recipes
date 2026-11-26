@@ -50,6 +50,8 @@ spec:
               value: "1"
             - name: NCCL_P2P_LEVEL
               value: "SYS"
+            - name: NCCL_CUMEM_ENABLE
+              value: "0"
             - name: VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC
               value: "1"
             - name: HF_TOKEN

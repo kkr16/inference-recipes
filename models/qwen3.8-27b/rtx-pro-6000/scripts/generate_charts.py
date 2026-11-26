@@ -28,7 +28,7 @@ COLORS = {
     "tp1_fp8_mtp4": "#D97706",          # Amber
     "tp1_nvfp4_nomtp": "#64748B",       # Slate
     "tp1_fp8_nomtp": "#94A3B8",         # Light Slate
-    "tp1_bf16_naive": "#CBD5E1",        # Pale Slate
+    "tp1_bf16_naive": "#B45309",        # Warm Amber (1-GPU Naive BF16 baseline)
     "tp8_bf16_naive": "#9CA3AF",        # Gray
     "tp8_bf16_mtp4_ipc": "#6B7280",     # Dark Gray
 }
@@ -208,7 +208,7 @@ def build_interactivity_pareto(metrics: Dict[str, Any]) -> str:
         (443.26, 64.66,  10, -40, "TP=4 c=1: 443 tok/s/u (2.13s p90)", "#7C3AED", "start"),
         (592.07, 38.83,  -8, -22, "TP=8 MTP-4: 592 tok/s/u (1.76s)", "#EA580C", "end"),
         (669.34, 41.25, -14, -76, "TP=8 MTP-5 + Triton: 669 tok/s/u (1.65s p90!)", "#DC2626", "end"),
-        (26.36, 24.49,   22,  -4, "BF16 Naive c=1 (26 tok/s/u)", "#64748B", "start"),
+        (26.36, 24.49,   22,  -4, "1× BF16 Naive: 24 → 169 tok/s (c=1..16)", "#B45309", "start"),
     ]
     for x, y, dx, dy, txt, col, anchor in annotations:
         px, py = sx(x), sy(y)
@@ -250,8 +250,8 @@ def build_node_e2e_pareto(metrics: Dict[str, Any]) -> str:
     ML, MR, MT, MB = 96, 42, 118, 92
     PW, PH = W - ML - MR, H - MT - MB
 
-    # Log-scale X axis for E2E p90 latency (1.2s to 45s)
-    x_min_log, x_max_log = math.log10(1.2), math.log10(48.0)
+    # Log-scale X axis for E2E p90 latency (1.2s to 75s)
+    x_min_log, x_max_log = math.log10(1.2), math.log10(75.0)
     y_min, y_max = 0.0, 4600.0
 
     def sx(x: float) -> float:
@@ -261,14 +261,15 @@ def build_node_e2e_pareto(metrics: Dict[str, Any]) -> str:
         return MT + PH - (y - y_min) / (y_max - y_min) * PH
 
     plot_specs = [
-        ("tp8_bf16_naive",      "1 × TP=8 BF16 Naive",                        "circle",   True,  2.0),
-        ("tp8_bf16_mtp4_ipc",   "1 × TP=8 BF16 + MTP-4 (PCIE_IPC + P2P=SYS)", "square",   True,  2.2),
-        ("tp1_fp8_mtp4",        "DP=8 × TP=1 FP8 + MTP-4 (Tuned)",            "square",   True,  2.4),
-        ("tp1_nvfp4_mtp4",      "DP=8 × TP=1 NVFP4 + MTP-4 (Champion)",       "circle",   False, 3.0),
-        ("tp2_nvfp4_mtp4_w5",   "DP=4 × TP=2 NVFP4 + MTP-4 (PCIE_IPC)",       "square",   False, 2.8),
-        ("tp4_nvfp4_mtp4_ipc",  "DP=2 × TP=4 NVFP4 + MTP-4 (PCIE_IPC)",       "diamond",  False, 2.8),
-        ("tp8_nvfp4_mtp4_w5",   "1 × TP=8 NVFP4 + MTP-4 (IPC + Triton)",      "triangle", False, 2.8),
-        ("tp8_nvfp4_mtp5_w5",   "1 × TP=8 NVFP4 + MTP-5 (IPC + Triton)",      "star",     False, 2.8),
+        ("tp1_bf16_naive",      "1 × TP=1 BF16 Naive (1-GPU Baseline)",       "diamond",  True,  2.2, "out_tok_s"),
+        ("tp8_bf16_naive",      "1 × TP=8 BF16 Naive",                        "circle",   True,  2.0, "node_8gpu_out_tok_s"),
+        ("tp8_bf16_mtp4_ipc",   "1 × TP=8 BF16 + MTP-4 (PCIE_IPC + P2P=SYS)", "square",   True,  2.2, "node_8gpu_out_tok_s"),
+        ("tp1_fp8_mtp4",        "DP=8 × TP=1 FP8 + MTP-4 (Tuned)",            "square",   True,  2.4, "node_8gpu_out_tok_s"),
+        ("tp1_nvfp4_mtp4",      "DP=8 × TP=1 NVFP4 + MTP-4 (Champion)",       "circle",   False, 3.0, "node_8gpu_out_tok_s"),
+        ("tp2_nvfp4_mtp4_w5",   "DP=4 × TP=2 NVFP4 + MTP-4 (PCIE_IPC)",       "square",   False, 2.8, "node_8gpu_out_tok_s"),
+        ("tp4_nvfp4_mtp4_ipc",  "DP=2 × TP=4 NVFP4 + MTP-4 (PCIE_IPC)",       "diamond",  False, 2.8, "node_8gpu_out_tok_s"),
+        ("tp8_nvfp4_mtp4_w5",   "1 × TP=8 NVFP4 + MTP-4 (IPC + Triton)",      "triangle", False, 2.8, "node_8gpu_out_tok_s"),
+        ("tp8_nvfp4_mtp5_w5",   "1 × TP=8 NVFP4 + MTP-5 (IPC + Triton)",      "star",     False, 2.8, "node_8gpu_out_tok_s"),
     ]
 
     all_nvfp4_pts = []
@@ -306,7 +307,7 @@ def build_node_e2e_pareto(metrics: Dict[str, Any]) -> str:
     lines.append(f'<text x="{x_2s + 7:.1f}" y="{MT + 26}" font-family="{FONT_SANS}" font-size="12" font-weight="700" fill="#DC2626">2.0s E2E p90 SLA</text>')
 
     # Gridlines & ticks
-    for xv in [1.5, 2, 3, 4, 5, 7, 10, 15, 20, 30, 40]:
+    for xv in [1.5, 2, 3, 4, 5, 7, 10, 15, 20, 30, 40, 65]:
         px = sx(xv)
         lines.append(f'<line x1="{px:.1f}" y1="{MT}" x2="{px:.1f}" y2="{MT+PH}" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4"/>')
         lbl = f"{xv:g}s"
@@ -336,46 +337,48 @@ def build_node_e2e_pareto(metrics: Dict[str, Any]) -> str:
         lines.append(f'<path d="{path_d}" fill="none" stroke="#0F172A" stroke-width="2.2" stroke-dasharray="7,5" stroke-opacity="0.55"/>')
 
     # Series
-    for key, label, shape, is_dashed, sw in plot_specs:
+    for key, label, shape, is_dashed, sw, yfield in plot_specs:
         pts = sorted(metrics["series"][key]["points"], key=lambda p: p["e2e_p90_s"])
         color = COLORS[key]
         dash = ' stroke-dasharray="5,4"' if is_dashed else ""
-        opacity = "0.78" if is_dashed else "1.0"
-        d = "M " + " L ".join(f"{sx(p['e2e_p90_s']):.1f},{sy(p['node_8gpu_out_tok_s']):.1f}" for p in pts)
+        opacity = "0.85" if is_dashed else "1.0"
+        d = "M " + " L ".join(f"{sx(p['e2e_p90_s']):.1f},{sy(p[yfield]):.1f}" for p in pts)
         lines.append(f'<path d="{d}" fill="none" stroke="{color}" stroke-width="{sw}"{dash} stroke-opacity="{opacity}"/>')
         r = 5.5 if not is_dashed else 4.2
         for p in pts:
-            lines.append(marker_svg(shape, sx(p["e2e_p90_s"]), sy(p["node_8gpu_out_tok_s"]), r, color))
+            lines.append(marker_svg(shape, sx(p["e2e_p90_s"]), sy(p[yfield]), r, color))
 
     # Hero callouts
     annotations = [
         (31.279, 4172.4, -14, -18, "DP=8 × TP=1 Peak: 4,172 tok/s (c=24/GPU)", "#0F766E", "end"),
         (7.262,  2735.8, -14, -18, "DP=8 Balanced: 2,736 tok/s @ 7.26s p90", "#0D9488", "end"),
         (4.174,  1999.3,  -8, -26, "DP=8 c=2: 1,999 tok/s @ 4.17s", "#0D9488", "end"),
-        (2.660,   844.8,  10, -24, "DP=4 × TP=2: 845 tok/s @ 2.66s", "#2563EB", "start"),
+        (2.660,   844.8,  -6, -54, "DP=4 × TP=2: 845 tok/s @ 2.66s", "#2563EB", "end"),
         (2.129,   517.3,  16,  52, "DP=2 × TP=4: 517 tok/s @ 2.13s", "#7C3AED", "start"),
-        (1.648,   330.0,   8, -160, "TP=8 MTP-5: 1.65s p90 (352ms under SLA!)", "#DC2626", "start"),
+        (1.648,   330.0,   8, -160, "TP=8 MTP-5: 1.65s p90 (352ms under SLA)", "#DC2626", "start"),
+        (20.420,   24.5, -18, -82, "1× BF16 Naive c=1: 24 tok/s @ 20.4s", "#B45309", "end"),
+        (61.648,  168.6,  -8, -28, "1× BF16 Naive c=16: 169 tok/s @ 61.6s", "#B45309", "end"),
     ]
     for x, y, dx, dy, txt, col, anchor in annotations:
         px, py = sx(x), sy(y)
         tx, ty = px + dx, py + dy
         lines.append(f'<line x1="{px:.1f}" y1="{py:.1f}" x2="{tx:.1f}" y2="{ty+3:.1f}" stroke="{col}" stroke-width="1" stroke-opacity="0.55"/>')
-        lines.append(f'<text x="{tx:.1f}" y="{ty:.1f}" text-anchor="{anchor}" font-family="{FONT_SANS}" font-size="11.5" font-weight="600" fill="{col}">{esc(txt)}</text>')
+        lines.append(f'<text x="{tx:.1f}" y="{ty:.1f}" text-anchor="{anchor}" font-family="{FONT_SANS}" font-size="11.5" font-weight="600" fill="{col}" paint-order="stroke" stroke="#FFFFFF" stroke-width="3">{esc(txt)}</text>')
 
-    # Legend box (bottom-right)
-    lx, ly = ML + PW - 355, MT + PH - 224
-    lh = 22 * (len(plot_specs) + 1) + 16
-    lines.append(f'<rect x="{lx}" y="{ly}" width="343" height="{lh}" rx="8" fill="#FFFFFF" fill-opacity="0.94" stroke="#CBD5E1" stroke-width="1"/>')
-    fy = ly + 22
-    lines.append(f'<line x1="{lx+14}" y1="{fy-4}" x2="{lx+40}" y2="{fy-4}" stroke="#0F172A" stroke-width="2.2" stroke-dasharray="6,4" stroke-opacity="0.65"/>')
-    lines.append(f'<text x="{lx+48}" y="{fy}" font-family="{FONT_SANS}" font-size="11.5" font-weight="700" fill="#0F172A">NVFP4 8-GPU Pareto Frontier</text>')
-    for idx, (key, label, shape, is_dashed, sw) in enumerate(reversed(plot_specs)):
-        ry = ly + 22 * (idx + 2)
+    # Legend box (middle-right open bay, strictly right of DP=4xTP=2 21.1s & above 1x BF16 Naive)
+    lx, ly = ML + PW - 322, MT + PH - 310
+    lh = 20.5 * (len(plot_specs) + 1) + 16
+    lines.append(f'<rect x="{lx}" y="{ly}" width="312" height="{lh:.0f}" rx="8" fill="#FFFFFF" fill-opacity="0.95" stroke="#CBD5E1" stroke-width="1"/>')
+    fy = ly + 21
+    lines.append(f'<line x1="{lx+12}" y1="{fy-4}" x2="{lx+34}" y2="{fy-4}" stroke="#0F172A" stroke-width="2.2" stroke-dasharray="6,4" stroke-opacity="0.65"/>')
+    lines.append(f'<text x="{lx+42}" y="{fy}" font-family="{FONT_SANS}" font-size="10.8" font-weight="700" fill="#0F172A">NVFP4 8-GPU Pareto Frontier</text>')
+    for idx, (key, label, shape, is_dashed, sw, _yf) in enumerate(reversed(plot_specs)):
+        ry = ly + 20.5 * (idx + 2)
         col = COLORS[key]
         dash = ' stroke-dasharray="4,3"' if is_dashed else ""
-        lines.append(f'<line x1="{lx+14}" y1="{ry-4}" x2="{lx+40}" y2="{ry-4}" stroke="{col}" stroke-width="{sw}"{dash}/>')
-        lines.append(marker_svg(shape, lx + 27, ry - 4, 4.3, col))
-        lines.append(f'<text x="{lx+48}" y="{ry}" font-family="{FONT_SANS}" font-size="11.5" fill="#1E293B">{esc(label)}</text>')
+        lines.append(f'<line x1="{lx+12}" y1="{ry-4}" x2="{lx+34}" y2="{ry-4}" stroke="{col}" stroke-width="{sw}"{dash}/>')
+        lines.append(marker_svg(shape, lx + 23, ry - 4, 4.0, col))
+        lines.append(f'<text x="{lx+42}" y="{ry}" font-family="{FONT_SANS}" font-size="10.5" fill="#1E293B">{esc(label)}</text>')
 
     # Footer
     lines.append(

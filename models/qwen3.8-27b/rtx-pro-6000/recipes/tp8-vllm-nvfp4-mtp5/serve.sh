@@ -8,6 +8,7 @@ set -euo pipefail
 
 export HF_XET_HIGH_PERFORMANCE=1
 export NCCL_P2P_LEVEL="SYS"
+export NCCL_CUMEM_ENABLE="0"
 export VLLM_ALLREDUCE_USE_FLASHINFER_PCIE_IPC="1"
 
 # NOTE: Prefix caching is ENABLED by default for production.
